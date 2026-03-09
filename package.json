@@ -1,0 +1,23 @@
+{
+  "name": "nanoclaw-tamagotchi-service",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "packages/platform",
+    "packages/orchestrator"
+  ],
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "typecheck": "turbo typecheck"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "packageManager": "npm@10.0.0"
+}

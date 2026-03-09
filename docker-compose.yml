@@ -1,0 +1,37 @@
+services:
+  platform:
+    build:
+      context: ./packages/platform
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - ORCHESTRATOR_URL=http://orchestrator:4001
+      - ORCHESTRATOR_SECRET=${ORCHESTRATOR_SECRET}
+    depends_on:
+      - orchestrator
+
+  orchestrator:
+    build:
+      context: ./packages/orchestrator
+      dockerfile: Dockerfile
+    ports:
+      - "4001:4001"
+    environment:
+      - NODE_ENV=development
+      - PORT=4001
+      - DATA_ROOT=/data/nanoclaw-instances
+      - ORCHESTRATOR_SECRET=${ORCHESTRATOR_SECRET}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - nanoclaw-data:/data/nanoclaw-instances
+    # 내부 네트워크만 — 외부 직접 노출 없음 (Caddy가 platform만 프록시)
+
+volumes:
+  nanoclaw-data:
+    driver: local
