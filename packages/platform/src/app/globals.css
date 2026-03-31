@@ -1,26 +1,117 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #050506;
+  --foreground: #EDEDEF;
+  --blue-start: #5E6AD2;
+  --blue-end: #818cf8;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-inter);
+  --font-serif: var(--font-playfair);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  background-color: #050506;
 }
 
 body {
-  background: var(--background);
+  background: radial-gradient(ellipse at top, #0a0a0f 0%, #050506 50%, #020203 100%);
+  background-color: #050506;
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-inter), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+/* 블롭 애니메이션 */
+@keyframes blob-float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-20px) rotate(1deg); }
+}
+@keyframes blob-float-2 {
+  0%, 100% { transform: translateY(0) rotate(0deg) scale(1); }
+  33% { transform: translateY(-15px) rotate(-1deg) scale(1.02); }
+  66% { transform: translateY(10px) rotate(0.5deg) scale(0.98); }
+}
+
+/* 키프레임 shimmer (gradient text 애니메이션) */
+@keyframes shimmer {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+@keyframes slide-up-dark {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-in-dark {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.5); }
+}
+
+.animate-blob {
+  animation: blob-float 9s ease-in-out infinite;
+}
+
+.animate-blob-2 {
+  animation: blob-float-2 12s ease-in-out infinite;
+}
+
+.animate-shimmer {
+  background-size: 200% auto;
+  animation: shimmer 3s linear infinite;
+}
+
+.animate-slide-up {
+  animation: slide-up-dark 0.6s ease-out forwards;
+}
+
+.animate-fade-in {
+  animation: fade-in-dark 0.8s ease-out forwards;
+}
+
+.animate-pulse-dot {
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+/* gradient text */
+.gradient-text-dark {
+  background: linear-gradient(to right, #5E6AD2, #818cf8, #5E6AD2);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 3s linear infinite;
+}
+
+/* headline gradient */
+.headline-gradient {
+  background: linear-gradient(to bottom, #ffffff 0%, rgba(255,255,255,0.95) 50%, rgba(255,255,255,0.7) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* glass dark */
+.glass-dark {
+  background: rgba(255,255,255,0.04);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+/* prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .animate-blob, .animate-blob-2, .animate-shimmer { animation: none; }
 }
