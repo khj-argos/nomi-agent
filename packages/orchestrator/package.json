@@ -2,24 +2,35 @@
   "name": "@nanoclaw/orchestrator",
   "version": "0.1.0",
   "private": true,
-  "type": "module",
-  "main": "dist/index.js",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
+    "dev": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register src/main.ts",
     "build": "tsc",
-    "start": "node dist/index.js",
-    "typecheck": "tsc --noEmit",
-    "lint": "eslint src/"
+    "start": "node dist/main.js",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "express": "^4.18.0",
-    "zod": "^3.22.0"
+    "@aws-sdk/client-ecs": "^3.758.0",
+    "@nestjs/common": "^10.4.0",
+    "@nestjs/config": "^3.3.0",
+    "@nestjs/core": "^10.4.0",
+    "@nestjs/platform-express": "^10.4.0",
+    "@nestjs/schedule": "^4.1.0",
+    "@slack/socket-mode": "^2.0.6",
+    "@slack/web-api": "^7.15.0",
+    "@supabase/supabase-js": "^2.49.0",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.1",
+    "cron": "^3.3.0",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.1",
+    "zod": "^3.24.0"
   },
   "devDependencies": {
-    "@types/express": "^4.17.0",
-    "@types/node": "^20.0.0",
-    "tsx": "^4.0.0",
-    "typescript": "^5.0.0"
+    "@types/express": "^5.0.6",
+    "@types/node": "^20.17.0",
+    "ts-node-dev": "^2.0.0",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.8.0"
   },
   "engines": {
     "node": ">=20.0.0"
