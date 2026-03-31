@@ -166,12 +166,13 @@ docker compose up -d nanoclaw-{userId}
 Control Plane에서 HTTP로 호출. 내부 네트워크만 접근 가능 (외부 노출 없음).
 
 ```
-POST   /instances                    인스턴스 생성 (디렉토리 프로비저닝 + compose 서비스 추가 + up)
-DELETE /instances/:userId            인스턴스 삭제 (컨테이너 중지 + 데이터 삭제)
-GET    /instances/:userId/status     상태 조회 (running/error)
-GET    /instances/:userId/logs       최근 로그 조회
-POST   /instances/:userId/restart    컨테이너 재시작
-PUT    /instances/:userId/config     CLAUDE.md 업데이트 후 재시작
+POST   /instances                         인스턴스 생성 (디렉토리 프로비저닝 + compose 서비스 추가 + up)
+DELETE /instances/:userId                 인스턴스 삭제 (컨테이너 중지 + 데이터 삭제)
+GET    /instances/:userId/status          상태 조회 (running/error)
+GET    /instances/:userId/logs            최근 로그 조회
+POST   /instances/:userId/restart         컨테이너 재시작
+PUT    /instances/:userId/config          CLAUDE.md 업데이트 후 재시작
+POST   /instances/:userId/register-chat   Telegram chat_id → nanoclaw SQLite registered_groups에 등록
 ```
 
 ### 3.4 데이터 격리
@@ -226,12 +227,11 @@ DELETE /api/instances/me/channels/:channel  채널 제거
 POST   /api/instances/me/restart     인스턴스 재시작
 GET    /api/instances/me/logs        최근 로그
 
-# 결제
-GET    /api/billing/plans            플랜 목록
-POST   /api/billing/subscribe        구독 시작
-DELETE /api/billing/subscribe        구독 취소
-GET    /api/billing/usage            사용량 조회
-```
+# 결제 (LemonSqueezy)
+GET    /api/billing/checkout          Checkout URL 생성 → LemonSqueezy 결제 페이지로 리디렉션
+GET    /api/billing/portal            Customer Portal URL 생성 → 구독 관리 페이지로 리디렉션
+POST   /api/billing/webhook           LemonSqueezy 웹훅 수신 (subscription_created / updated / cancelled 등)
+GET    /api/billing/subscription      현재 구독 상태 조회 (status, current_period_end)
 
 ### 4.3 API 키 보안
 
@@ -263,49 +263,107 @@ PostgreSQL 저장 (encrypted_api_key 컬럼)
 /login
 /signup
 /onboarding
-    /onboarding/llm-setup          Step 1: LLM 설정
-    /onboarding/agent-setup        Step 2: 에이전트 설정 (3계층)
-    /onboarding/channel-connect    Step 3: 채널 연결
-    /onboarding/complete           Step 4: 완료
+    /onboarding/start              Step 0: 사용자 유형 선택 (Beginner / Advanced)
+
+    ── Advanced 경로 ──
+    /onboarding/llm-setup          Step 1A: API 키 직접 입력
+    /onboarding/agent-setup        Step 2A: 에이전트 설정 (템플릿 or Monaco Editor)
+    /onboarding/channel-connect    Step 3: Telegram 연결 (공통)
+    /onboarding/complete           Step 4: 완료 (공통)
+
+    ── Beginner 경로 ──
+    /onboarding/name-setup         Step 1B: 에이전트 이름 짓기
+    /onboarding/persona-select     Step 2B: 성격/역할 템플릿 선택 (비개발자 언어)
+    /onboarding/channel-connect    Step 3: Telegram 연결 (공통, 가이드 강화)
+    /onboarding/complete           Step 4: 완료 (공통)
+
 /dashboard                         메인 대시보드
 /settings
     /settings/agent                에이전트 설정 변경
     /settings/channels             채널 관리
-    /settings/llm                  LLM 설정 변경
+    /settings/llm                  LLM 설정 변경 (Advanced: API 키 교체, Beginner: 플랜 업그레이드)
     /settings/billing              구독/결제
     /settings/account              계정 설정
 ```
 
 ### 5.2 온보딩 플로우 상세
 
+**원칙: 가치 먼저, 입력 나중.** 사용자가 뭘 얻는지 먼저 느끼게 하고, 그 다음에 정보를 요청한다.
+
 ```
-Step 1: LLM 설정
-    ├── (A) 본인 API 키 입력 (Anthropic)
-    │       → 키 형식 실시간 검증 (sk-ant-... 패턴)
-    │       → 테스트 API 호출로 유효성 확인
-    │       → 암호화 저장
-    └── (B) 우리 LLM 플랜 선택 (Phase 2, MVP는 BYOK만)
-            → 플랜 선택 → 결제 정보 입력
+Step 0: 사용자 유형 선택 (/onboarding/start)
+    ┌──────────────────────────┐   ┌──────────────────────────┐
+    │  🚀 빠르게 시작하기       │   │  ⚙️  직접 설정하기         │
+    │  (Beginner)              │   │  (Advanced)              │
+    │  이름만 정하면 바로 시작  │   │  내 Anthropic API 키 사용 │
+    └──────────────────────────┘   └──────────────────────────┘
+              ↓                               ↓
+       [Beginner 경로]               [Advanced 경로]
 
-Step 2: 에이전트 설정
-    ├── 계층 1: 원클릭 템플릿
-    │       개발자 / 글쓰기 / 마케터 / 업무비서 / 투자 / 나만의 설정
-    ├── 계층 2: 자연어 입력
-    │       → LLM이 CLAUDE.md 자동 생성
-    │       → 미리보기 → 확인
-    └── 계층 3: 직접 편집 (고급)
-            → 코드 에디터 UI (Monaco Editor)
+━━━ Beginner 경로 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Step 3: 채널 연결 (1개 이상 필수)
-    ├── WhatsApp: QR코드 또는 페어링 코드
-    ├── Telegram: 봇 토큰 입력
-    ├── Slack:    OAuth 연결
-    └── Discord:  봇 초대 링크
+Step 1B: 에이전트 이름 짓기 (/onboarding/name-setup)
+    - "당신의 AI에게 이름을 지어주세요"
+    - 텍스트 입력 (기본값: Andy)
+    - 짧은 프리뷰: "안녕하세요, 저는 {이름}이에요. 뭘 도와드릴까요?"
 
-Step 4: 완료
-    → 인스턴스 생성 트리거 (Orchestrator 호출)
-    → 채널에서 AI 첫 인사 메시지 수신
-    → 대시보드로 이동
+Step 2B: 성격/역할 선택 (/onboarding/persona-select)
+    - 비개발자 언어로 템플릿 카드 그리드:
+        ✍️ 글 잘 쓰는 친구   → 글쓰기, 교정, 아이디어
+        💼 꼼꼼한 업무 비서   → 일정, 요약, 정리
+        🔍 리서치 전문가      → 조사, 분석, 요약
+        🎨 크리에이티브 파트너 → 아이디어, 브레인스토밍
+        📚 학습 도우미        → 설명, 질문, 복습
+        🙋 나만의 설정        → 직접 입력 (간단한 자연어)
+    - 선택 → CLAUDE.md 자동 생성 (서버에서 LLM 호출)
+    - API 키는 서버 내부 키 사용 (Beginner는 BYOK 불필요, Phase 2에서 유료 플랜으로 전환)
+
+━━━ Advanced 경로 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Step 1A: API 키 입력 (/onboarding/llm-setup)
+    - Anthropic API 키 입력
+    - 실시간 형식 검증 (sk-ant-... 패턴)
+    - "검증하기" → POST /api/validate-key (Anthropic /v1/models 호출)
+    - 성공 → OnboardingContext에 저장 (메모리만, sessionStorage 금지)
+
+Step 2A: 에이전트 설정 (/onboarding/agent-setup)
+    - 계층 1: 원클릭 템플릿 (Beginner 카드와 동일하나 기술적 설명 추가)
+    - 계층 3: Monaco Editor 직접 편집 (CLAUDE.md 전체 제어)
+
+━━━ 공통 경로 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Step 3: Telegram 연결 (/onboarding/channel-connect)
+    ── Beginner 모드 (단계별 가이드 강화) ──
+    ① [Telegram 앱 열기] 버튼
+    ② [@BotFather 바로가기] 버튼
+    ③ /newbot 명령어 → [클립보드 복사] 버튼
+    ④ 봇 이름 / 유저네임 설정 안내
+    ⑤ 발급된 토큰 붙여넣기 → 실시간 검증
+    (각 단계에 스크린샷/GIF, 진행률 표시)
+
+    ── Advanced 모드 ──
+    - 봇 토큰 입력 + [검증하기]
+    - 성공 시 봇 이름(@username) 표시
+
+    공통: POST /api/validate-telegram → api.telegram.org/bot{token}/getMe
+
+Step 4: 완료 (/onboarding/complete)
+    → POST /api/onboarding/complete 호출
+    → 서버: (Advanced) API 키 암호화 저장 / (Beginner) 서버 키 사용 플래그 저장
+    → Orchestrator 인스턴스 생성 호출
+    → 로딩 (~5초)
+    → 완료 화면:
+        Beginner: "🎉 {이름}가 Telegram에서 기다리고 있어요! 지금 바로 인사해보세요."
+                  → [Telegram에서 /start 보내기] 버튼 (링크)
+        Advanced: "✅ 설정 완료! 대시보드에서 확인하세요."
+    → /dashboard 이동
+
+⚠️  Telegram chat_id 등록은 2단계 프로세스:
+    [온보딩 Step 3]  봇 토큰 검증 → 컨테이너에 TELEGRAM_BOT_TOKEN 주입
+    [대시보드 배너]  사용자가 봇에게 /start 전송
+                    → Orchestrator getUpdates 폴링 → chat_id 감지
+                    → registered_groups 등록 + instance_channels.status 'connected'
+                    → 배너 "✅ 연결 완료!" 로 전환 (5초 폴링)
 ```
 
 ### 5.3 대시보드
@@ -361,20 +419,91 @@ instance_channels (
     connected_at TIMESTAMPTZ
 )
 
--- 구독
+-- 구독 (LemonSqueezy)
 subscriptions (
-    id              UUID PRIMARY KEY,
-    user_id         UUID REFERENCES users(id),
-    plan            TEXT,  -- 'starter' | 'pro' | 'team'
-    status          TEXT,  -- 'active' | 'cancelled' | 'past_due'
-    stripe_sub_id   TEXT,
-    current_period_end TIMESTAMPTZ
+    id                  UUID PRIMARY KEY,
+    user_id             UUID REFERENCES users(id),
+    ls_subscription_id  TEXT,  -- LemonSqueezy subscription ID
+    ls_customer_id      TEXT,
+    ls_variant_id       TEXT,
+    ls_order_id         TEXT,
+    status              TEXT,  -- 'active' | 'past_due' | 'cancelled' | 'expired'
+    current_period_end  TIMESTAMPTZ
 )
 ```
 
 ---
 
-## 7. 보안 요구사항
+## 7. 요금 정책 (Pricing)
+
+### 7.1 요금 구조 개요
+
+```
+Phase 1 (MVP)  — 단일 플랜, BYOK only
+Phase 2+       — Ollama 포함 플랜 추가 (인프라 설계 후 결정)
+```
+
+### 7.2 Phase 1 — Starter 플랜
+
+| 항목 | 내용 |
+|------|------|
+| **플랜명** | Starter |
+| **가격** | $15 / 월 |
+| **결제 수단** | LemonSqueezy (신용카드, PayPal 등 MoR 처리) |
+| **LLM** | BYOK — 사용자 본인 Anthropic API 키 필수 |
+| **인스턴스** | 1인당 1 nanoclaw 인스턴스 |
+| **채널** | Telegram (MVP), WhatsApp (Phase 2+) |
+| **지원** | 이메일 지원 |
+
+**포함 내용:**
+- 독립 nanoclaw 컨테이너 (격리 실행, `restart: unless-stopped`)
+- 독립 SQLite DB + CLAUDE.md 저장소
+- 웹 대시보드 (상태 조회, 설정 변경, 재시작)
+- Telegram 채널 연결
+- API 키 AES-256-GCM 암호화 저장
+
+**포함되지 않는 내용:**
+- LLM 비용 (사용자 Anthropic 계정에 직접 청구)
+- WhatsApp, Slack, Discord 채널 (Phase 2+)
+
+### 7.3 Phase 2 — 플랜 구조 (TBD)
+
+```
+Ollama 인프라 설계 완료 후 결정.
+예상 방향:
+  - Starter: Ollama LLM 기본 포함 (API 키 불필요, 진입 장벽 낮춤)
+  - Pro:     BYOK(Anthropic/OpenAI), 다중 채널, 우선 지원
+가격: Ollama VM 운영 비용 확정 후 산정.
+```
+
+### 7.4 LemonSqueezy 연동 방식
+
+```
+사용자 결제 흐름:
+  1. /settings/billing → GET /api/billing/checkout
+  2. LemonSqueezy Checkout 페이지 리디렉션
+  3. 결제 완료 → LemonSqueezy → POST /api/billing/webhook 호출
+  4. 웹훅에서 subscriptions 테이블 업데이트 (service_role key 사용)
+  5. 구독 상태 'active' → 서비스 이용 가능
+
+구독 상태 가드:
+  - 미구독 사용자: 온보딩 완료 후 /settings/billing 리디렉션
+  - 구독 만료(past_due/cancelled): 대시보드 접근 차단 + 결제 유도 배너
+  - 웹훅 이벤트: subscription_created, subscription_updated, subscription_cancelled
+```
+
+### 7.5 마진 구조
+
+| 항목 | 내용 |
+|------|------|
+| 수익 | $15/월 × 구독자 수 |
+| 비용 | Hetzner VM + LemonSqueezy 수수료(5% + 50¢) |
+| LLM 비용 | 사용자 직접 부담 → 우리 마진 리스크 없음 |
+| 손익분기 | VM €8~18/월 기준, 2~3명 구독자면 커버 |
+
+---
+
+## 8. 보안 요구사항
 
 ### 7.1 테넌트 격리 체크리스트
 
@@ -399,7 +528,7 @@ subscriptions (
 
 ---
 
-## 8. 인프라 구성 (MVP)
+## 9. 인프라 구성 (MVP)
 
 ```
 [클라우드 VM — Hetzner CX32, €8/월]
@@ -415,7 +544,7 @@ subscriptions (
 
 [외부 서비스]
 ├── Supabase        ← Auth + PostgreSQL (무료 티어로 시작)
-└── Stripe          ← 결제 (Phase 2)
+└── LemonSqueezy  ← 결제/구독 관리 (MoR)
 ```
 
 ### 비용 추정 (인스턴스 수별)
@@ -431,13 +560,20 @@ nanoclaw 1인스턴스 메모리: 약 150~200MB.
 
 ---
 
-## 9. 개발 단계별 범위
+## 10. 개발 단계별 범위
 
 ### Phase 1 — MVP
 
-**목표**: 사용자가 가입 → API 키 입력 → 에이전트 설정 → WhatsApp/Telegram 연결 → AI 동작까지 5분 내 완료
+**목표**: 사용자가 가입 → API 키 입력 → 에이전트 설정 → Telegram 연결 → AI 동작 + 결제까지 5분 내 완료
 
 **포함 범위:**
+- [ ] 사용자 가입/로깅 (Supabase Auth)
+- [ ] API 키 입력 및 암호화 저장 (BYOK만)
+- [ ] 에이전트 설정 (계층 1 템플릿 + 계층 3 직접 편집)
+- [ ] 채널 연결 (Telegram 우선, WhatsApp 추후)
+- [ ] Instance Orchestrator (생성/삭제/재시작, docker-compose 기반)
+- [ ] 기본 대시보드 (상태 조회, 재시작)
+- [ ] **LemonSqueezy 결제 연동 — Starter 플랜 $15/월** (BYOK 구독 가드)
 - [ ] 사용자 가입/로그인 (Supabase Auth)
 - [ ] API 키 입력 및 암호화 저장 (BYOK만)
 - [ ] 에이전트 설정 (계층 1 템플릿 + 계층 3 직접 편집)
@@ -446,20 +582,28 @@ nanoclaw 1인스턴스 메모리: 약 150~200MB.
 - [ ] 기본 대시보드 (상태 조회, 재시작)
 
 **제외 범위 (Phase 2+):**
-- 결제 (Stripe)
 - 자연어 → CLAUDE.md 변환 (계층 2)
-- 우리 LLM 플랜 (Ollama)
+- **Ollama (자체 LLM 플랜)** — MVP는 Anthropic API 키 필수 (BYOK only). Ollama는 이미지에 포함 불가 (모델 크기 12GB~70GB+), VM 별도 서비스로 분리 설계 필요 → Phase 2에서 별도 인프라 설계
 - WhatsApp 채널 연결
 - MCP 마켓플레이스
 - CLAUDE.md 자동 진화
-
+- LemonSqueezy 결제 + 유료 플랜
+- 자연어 → CLAUDE.md 변환 (계층 2)
+- **Ollama (자체 LLM 플랜)** — MVP는 Anthropic API 키 필수 (BYOK only). Ollama는 이미지에 포함 불가 (모델 크기 12GB~70GB+), VM 별도 서비스로 분리 설계 필요 → Phase 2에서 별도 인프라 설계
+- WhatsApp 채널 연결
+- MCP 마켓플레이스
+- CLAUDE.md 자동 진화
 ### Phase 2
 
-- 결제 (Stripe) + 유료 플랜
+- LemonSqueezy 결제 + 유료 플랜
 - 자연어 에이전트 설정 (계층 2)
 - WhatsApp 채널 연결
 - Slack, Discord 채널 추가
-- 우리 LLM 플랜 (Ollama)
+- **Ollama 자체 LLM 플랜** (별도 인프라 설계 필요)
+  - Ollama를 VM에 독립 서비스로 실행, nanoclaw 컨테이너들이 공유 호출
+  - 20b 모델: CPU 전용 VM 가능하나 응답 속도 느림
+  - 120b 모델: GPU VM 필수 (Hetzner GPU 서버, 월 수백 유로)
+  - 동시 사용자 병목 문제 별도 설계 필요
 
 ### Phase 3
 
@@ -470,7 +614,7 @@ nanoclaw 1인스턴스 메모리: 약 150~200MB.
 
 ---
 
-## 10. 미결 사항
+## 11. 미결 사항
 
 | 번호 | 질문 | 현재 생각 | 결정 필요 시점 |
 |------|------|-----------|---------------|
