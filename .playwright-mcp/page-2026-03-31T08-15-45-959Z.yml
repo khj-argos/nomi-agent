@@ -1,0 +1,279 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - navigation [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5]:
+          - generic [ref=e7]: "N"
+          - generic [ref=e8]: Nomi
+        - generic [ref=e9]:
+          - link "기능" [ref=e10] [cursor=pointer]:
+            - /url: "#features"
+          - link "사용법" [ref=e11] [cursor=pointer]:
+            - /url: "#how"
+          - link "요금제" [ref=e12] [cursor=pointer]:
+            - /url: "#pricing"
+        - link "로그인" [ref=e14] [cursor=pointer]:
+          - /url: /auth/login
+    - generic [ref=e16]:
+      - generic [ref=e20]: 나만의 독립 AI 에이전트
+      - heading "쓸수록 나를 닮아가는 나만의 AI" [level=1] [ref=e21]:
+        - text: 쓸수록
+        - text: 나를 닮아가는
+        - text: 나만의 AI
+      - paragraph [ref=e22]:
+        - text: 하루에 한 번, 내가 열지 않아도
+        - strong [ref=e23]: 먼저 찾아오는
+        - text: AI. Telegram으로 5분 만에 나만의 에이전트를 키워보세요.
+      - generic [ref=e24]:
+        - link "14일 무료로 시작하기" [ref=e25] [cursor=pointer]:
+          - /url: /signup
+          - text: 14일 무료로 시작하기
+          - img [ref=e26]
+        - link "작동 방식 보기" [ref=e28] [cursor=pointer]:
+          - /url: "#how"
+      - generic [ref=e29]:
+        - generic [ref=e30]:
+          - img [ref=e31]
+          - generic [ref=e33]: 신용카드 불필요
+        - generic [ref=e34]:
+          - img [ref=e35]
+          - generic [ref=e37]: 14일 무료 체험
+        - generic [ref=e38]:
+          - img [ref=e39]
+          - generic [ref=e41]: 5분 셋업
+    - generic [ref=e43]:
+      - generic [ref=e44]:
+        - generic [ref=e45]:
+          - generic [ref=e46]:
+            - generic [ref=e48]: A
+            - generic [ref=e49]:
+              - paragraph [ref=e50]: Andy
+              - generic [ref=e53]: 온라인
+          - generic [ref=e54]: Telegram
+        - generic [ref=e55]:
+          - generic [ref=e56]:
+            - generic [ref=e58]: A
+            - paragraph [ref=e60]: 오늘 주식 많이 빠졌네. 확인해봤어? 📊
+          - generic [ref=e61]:
+            - generic [ref=e63]: A
+            - paragraph [ref=e65]: 3일째 운동 기록이 없어. 괜찮아? 💪
+          - generic [ref=e66]:
+            - generic [ref=e68]: A
+            - paragraph [ref=e70]: 이번 주 마감 내일인데 진행 상황 어때? ⏰
+        - generic [ref=e72]:
+          - generic [ref=e73]: 메시지...
+          - img [ref=e75]
+      - generic [ref=e79]: 먼저 말 걸어옴
+    - generic [ref=e81]:
+      - generic [ref=e82]:
+        - heading "기존 AI는 망각형이에요" [level=2] [ref=e83]
+        - paragraph [ref=e84]: 당신이 앱을 열어야만 존재하고, 닫으면 사라지는 AI.
+      - generic [ref=e85]:
+        - generic [ref=e86]:
+          - generic [ref=e89]: ChatGPT / Claude
+          - generic [ref=e90]:
+            - generic [ref=e91]:
+              - generic [ref=e92]: ✕
+              - generic [ref=e93]: 당신이 열어야만 존재함
+            - generic [ref=e94]:
+              - generic [ref=e95]: ✕
+              - generic [ref=e96]: 매 대화마다 처음부터 설명
+            - generic [ref=e97]:
+              - generic [ref=e98]: ✕
+              - generic [ref=e99]: 주도적으로 알림 불가
+            - generic [ref=e100]:
+              - generic [ref=e101]: ✕
+              - generic [ref=e102]: 나를 모르는 채로 항상 리셋
+        - generic [ref=e104]:
+          - generic [ref=e107]: Nomi
+          - generic [ref=e108]:
+            - generic [ref=e109]:
+              - img [ref=e110]
+              - generic [ref=e112]: 내가 열지 않아도 먼저 찾아옴
+            - generic [ref=e113]:
+              - img [ref=e114]
+              - generic [ref=e116]: 대화할수록 나를 더 잘 이해함
+            - generic [ref=e117]:
+              - img [ref=e118]
+              - generic [ref=e120]: Telegram으로 능동적 알림
+            - generic [ref=e121]:
+              - img [ref=e122]
+              - generic [ref=e124]: 쓸수록 나를 닮아가는 나만의 AI
+    - generic [ref=e126]:
+      - generic [ref=e127]:
+        - heading "살아있는 AI" [level=2] [ref=e128]
+        - paragraph [ref=e129]: 단순한 챗봇이 아닙니다. 시간이 지날수록 진짜 나의 AI 파트너가 돼요.
+      - generic [ref=e130]:
+        - generic [ref=e131]:
+          - img [ref=e133]
+          - heading "나만의 독립 인스턴스" [level=3] [ref=e136]
+          - paragraph [ref=e137]: 사용자마다 완전히 격리된 AI 컨테이너. 내 데이터가 다른 사람과 절대 섞이지 않아요.
+        - generic [ref=e138]:
+          - img [ref=e140]
+          - heading "쓸수록 진화하는 AI" [level=3] [ref=e148]
+          - paragraph [ref=e149]: 대화 패턴, 관심사, 말투를 AI가 스스로 파악해 점점 나를 닮아가요. Day 30엔 말 안 해도 알아서.
+        - generic [ref=e150]:
+          - img [ref=e152]
+          - heading "능동적으로 먼저 찾아옴" [level=3] [ref=e154]
+          - paragraph [ref=e155]: 마감 알림, 뉴스 브리핑, 운동 체크... AI가 판단해서 Telegram으로 먼저 말 걸어요.
+        - generic [ref=e156]:
+          - img [ref=e158]
+          - heading "내 API 키, 내 데이터" [level=3] [ref=e161]
+          - paragraph [ref=e162]: 본인의 Anthropic API 키를 직접 입력. 우리는 인프라만 제공해요. LLM 비용은 내가 컨트롤.
+        - generic [ref=e163]:
+          - img [ref=e165]
+          - heading "즉시 시작, 5분 셋업" [level=3] [ref=e167]
+          - paragraph [ref=e168]: 가입 → API 키 입력 → Telegram 연결. 복잡한 설정 없이 5분 안에 나만의 AI가 생겨요.
+        - generic [ref=e169]:
+          - img [ref=e171]
+          - heading "자연어로 AI 커스터마이징" [level=3] [ref=e174]
+          - paragraph [ref=e175]: "\"매일 아침 뉴스 브리핑 해줘\" 한 마디면 AI 설정 완료. 개발자 아니어도 완전히 내 것으로."
+    - generic [ref=e177]:
+      - generic [ref=e178]:
+        - heading "5분이면 충분해요" [level=2] [ref=e179]
+        - paragraph [ref=e180]: 복잡한 설정 없이, 바로 나만의 AI와 대화 시작.
+      - generic [ref=e181]:
+        - generic [ref=e184]:
+          - generic [ref=e186]: "01"
+          - heading "가입 & API 키 입력" [level=3] [ref=e187]
+          - paragraph [ref=e188]: 이메일로 30초 가입. Anthropic API 키를 입력하거나 우리 LLM 플랜을 선택하세요.
+        - generic [ref=e191]:
+          - generic [ref=e193]: "02"
+          - heading "나만의 AI 설정" [level=3] [ref=e194]
+          - paragraph [ref=e195]: 템플릿 선택 또는 자연어로 원하는 AI를 묘사하면, CLAUDE.md가 자동 생성돼요.
+        - generic [ref=e197]:
+          - generic [ref=e199]: "03"
+          - heading "Telegram에서 시작" [level=3] [ref=e200]
+          - paragraph [ref=e201]: 봇 토큰 입력 후 연결 완료. 이제 AI가 알아서 먼저 말 걸어올 거예요.
+    - generic [ref=e203]:
+      - generic [ref=e204]:
+        - heading "투명한 요금제" [level=2] [ref=e205]
+        - paragraph [ref=e206]: 신용카드 없이 14일 무료. 언제든 취소 가능.
+        - generic [ref=e207]:
+          - button "월간" [ref=e208]
+          - button "연간 20% 할인" [ref=e209]:
+            - text: 연간
+            - generic [ref=e210]: 20% 할인
+      - generic [ref=e211]:
+        - generic [ref=e212]:
+          - generic [ref=e213]: 14일 무료
+          - generic [ref=e214]:
+            - generic [ref=e215]:
+              - heading "Free" [level=3] [ref=e216]
+              - paragraph [ref=e217]: 신용카드 없이 14일 무료 체험
+            - generic [ref=e218]:
+              - generic [ref=e219]: $0
+              - generic [ref=e220]: / 14일
+            - link "무료로 시작하기" [ref=e221] [cursor=pointer]:
+              - /url: /signup
+              - text: 무료로 시작하기
+              - img [ref=e222]
+            - list [ref=e224]:
+              - listitem [ref=e225]:
+                - img [ref=e226]
+                - text: 독립 AI 에이전트 인스턴스
+              - listitem [ref=e228]:
+                - img [ref=e229]
+                - text: 본인 Anthropic API 키 (BYOK)
+              - listitem [ref=e231]:
+                - img [ref=e232]
+                - text: Telegram 채널 연결
+              - listitem [ref=e234]:
+                - img [ref=e235]
+                - text: 자동 학습 & 진화
+              - listitem [ref=e237]:
+                - img [ref=e238]
+                - text: 능동적 알림 (1회/일)
+              - listitem [ref=e240]:
+                - img [ref=e241]
+                - text: 기본 온보딩 지원
+        - generic [ref=e244]:
+          - generic [ref=e245]:
+            - heading "Starter" [level=3] [ref=e246]
+            - paragraph [ref=e247]: 14일 이후 계속 사용하기
+          - generic [ref=e248]:
+            - generic [ref=e249]: $19
+            - generic [ref=e250]: /월
+          - link "Starter로 시작하기" [ref=e251] [cursor=pointer]:
+            - /url: /signup
+            - text: Starter로 시작하기
+            - img [ref=e252]
+          - list [ref=e254]:
+            - listitem [ref=e255]:
+              - img [ref=e256]
+              - text: 독립 AI 에이전트 인스턴스
+            - listitem [ref=e258]:
+              - img [ref=e259]
+              - text: 본인 Anthropic API 키 (BYOK)
+            - listitem [ref=e261]:
+              - img [ref=e262]
+              - text: Telegram 채널 연결
+            - listitem [ref=e264]:
+              - img [ref=e265]
+              - text: 자동 학습 & 진화
+            - listitem [ref=e267]:
+              - img [ref=e268]
+              - text: 능동적 알림 (1회/일)
+            - listitem [ref=e270]:
+              - img [ref=e271]
+              - text: 기본 온보딩 지원
+        - generic [ref=e273]:
+          - generic [ref=e274]: 인기
+          - generic [ref=e275]:
+            - generic [ref=e276]:
+              - heading "Pro" [level=3] [ref=e277]
+              - paragraph [ref=e278]: API 키 없이 바로 사용, 최고 성능
+            - generic [ref=e279]:
+              - generic [ref=e280]: $49
+              - generic [ref=e281]: /월
+            - link "Pro로 시작하기" [ref=e282] [cursor=pointer]:
+              - /url: /signup
+              - text: Pro로 시작하기
+              - img [ref=e283]
+            - list [ref=e285]:
+              - listitem [ref=e286]:
+                - img [ref=e287]
+                - text: 독립 AI 에이전트 인스턴스
+              - listitem [ref=e289]:
+                - img [ref=e290]
+                - text: LLM 포함 (API 키 불필요)
+              - listitem [ref=e292]:
+                - img [ref=e293]
+                - text: Telegram + 추가 채널
+              - listitem [ref=e295]:
+                - img [ref=e296]
+                - text: 자동 학습 & 진화
+              - listitem [ref=e298]:
+                - img [ref=e299]
+                - text: 능동적 알림 (무제한)
+              - listitem [ref=e301]:
+                - img [ref=e302]
+                - text: 고급 온보딩 + 우선 지원
+              - listitem [ref=e304]:
+                - img [ref=e305]
+                - text: CLAUDE.md 직접 편집
+      - paragraph [ref=e307]: Free 14일 체험 후 자동 종료 · 신용카드 불필요 · 언제든 업그레이드 가능
+    - generic [ref=e309]:
+      - generic [ref=e312]: 지금 얼리어답터 혜택 중
+      - heading "나만의 AI를 지금 키워보세요" [level=2] [ref=e313]
+      - paragraph [ref=e314]: 더 이상 AI에게 먼저 물어볼 필요 없어요. AI가 알아서 당신을 찾아올 거예요.
+      - generic [ref=e315]:
+        - link "14일 무료로 시작하기" [ref=e316] [cursor=pointer]:
+          - /url: /signup
+          - text: 14일 무료로 시작하기
+          - img [ref=e317]
+        - link "요금제 보기" [ref=e319] [cursor=pointer]:
+          - /url: "#pricing"
+      - paragraph [ref=e320]: 신용카드 불필요 · 14일 후 자동 종료 · 언제든 업그레이드
+    - contentinfo [ref=e321]:
+      - generic [ref=e322]:
+        - generic [ref=e323]:
+          - generic [ref=e325]: "N"
+          - generic [ref=e326]: Nomi
+        - paragraph [ref=e327]: © 2026 Nomi. 나만의 AI 에이전트 플랫폼.
+        - generic [ref=e328]:
+          - link "개인정보처리방침" [ref=e329] [cursor=pointer]:
+            - /url: /privacy
+          - link "이용약관" [ref=e330] [cursor=pointer]:
+            - /url: /terms
+  - alert [ref=e331]
