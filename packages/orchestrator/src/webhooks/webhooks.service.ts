@@ -25,7 +25,7 @@ export class WebhooksService {
     const tokenHash = sha256(botToken);
     const { data: channel } = await this.supabase.db
       .from('channels')
-      .select('user_id, instance_id, instances(ecs_task_arn, ecs_task_def_arn, status)')
+      .select('user_id, instance_id, instances(container_id, status)')
       .eq('type', 'telegram')
       .eq('is_active', true)
       .eq('identifier', tokenHash)
@@ -43,20 +43,13 @@ export class WebhooksService {
     });
 
     const instance = channel.instances as unknown as Record<string, unknown>;
-    const taskArn = instance?.ecs_task_arn as string | null;
-    const taskDefArn = instance?.ecs_task_def_arn as string | null;
+    const containerId = instance?.container_id as string | null;
 
-    if (!taskArn) {
-      if (!taskDefArn) {
-        this.logger.error(`No task definition for user ${channel.user_id}`);
-        return;
-      }
+    if (!containerId) {
       await this.sendTelegramMessage(botToken, chatId, '잠깐만요, 준비 중이에요 🔄');
-
-      const newTaskArn = await this.containerManager.startContainer(channel.user_id, taskDefArn);
-      await this.instancesService.updateTaskArn(channel.user_id, newTaskArn);
-
-      this.logger.log(`Container started for user ${channel.user_id}: ${newTaskArn}`);
+      const newContainerId = await this.containerManager.startContainer(channel.user_id);
+      await this.instancesService.updateContainerId(channel.user_id, newContainerId);
+      this.logger.log(`Container started for user ${channel.user_id}: ${newContainerId}`);
     }
 
     await this.instancesService.updateLastActivity(channel.user_id);
@@ -85,7 +78,7 @@ export class WebhooksService {
 
     const { data: channel } = await this.supabase.db
       .from('channels')
-      .select('user_id, instance_id, instances(ecs_task_arn, ecs_task_def_arn, status)')
+      .select('user_id, instance_id, instances(container_id, status)')
       .eq('type', 'slack')
       .eq('identifier', teamId)
       .eq('is_active', true)
@@ -103,12 +96,11 @@ export class WebhooksService {
     });
 
     const instance = channel.instances as unknown as Record<string, unknown>;
-    const taskArn = instance?.ecs_task_arn as string | null;
-    const taskDefArn = instance?.ecs_task_def_arn as string | null;
+    const containerId = instance?.container_id as string | null;
 
-    if (!taskArn && taskDefArn) {
-      const newTaskArn = await this.containerManager.startContainer(channel.user_id, taskDefArn);
-      await this.instancesService.updateTaskArn(channel.user_id, newTaskArn);
+    if (!containerId) {
+      const newContainerId = await this.containerManager.startContainer(channel.user_id);
+      await this.instancesService.updateContainerId(channel.user_id, newContainerId);
     }
 
     await this.instancesService.updateLastActivity(channel.user_id);

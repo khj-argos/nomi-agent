@@ -20,15 +20,15 @@ export class MonitorService {
   async detectCrashedContainers() {
     const { data: runningInstances } = await this.supabase.db
       .from('instances')
-      .select('id, user_id, ecs_task_arn, restart_count, ecs_task_def_arn')
+      .select('id, user_id, container_id, restart_count')
       .eq('status', 'running')
-      .not('ecs_task_arn', 'is', null);
+      .not('container_id', 'is', null);
 
     if (!runningInstances?.length) return;
 
     for (const instance of runningInstances) {
       try {
-        const status = await this.containerManager.getTaskStatus(instance.ecs_task_arn);
+        const status = await this.containerManager.getTaskStatus(instance.container_id);
 
         if (status === 'stopped' || status === 'unknown') {
           this.logger.warn(`Crashed container detected for user ${instance.user_id}`);
@@ -36,36 +36,31 @@ export class MonitorService {
           if ((instance.restart_count ?? 0) >= MAX_AUTO_RESTART) {
             await this.supabase.db
               .from('instances')
-              .update({ status: 'error', error_message: 'Max restart attempts reached', ecs_task_arn: null })
+              .update({ status: 'error', error_message: 'Max restart attempts reached', container_id: null })
               .eq('id', instance.id);
             this.logger.error(`User ${instance.user_id} reached max restarts. Manual intervention required.`);
             continue;
           }
 
-          if (instance.ecs_task_def_arn) {
-            const newTaskArn = await this.containerManager.startContainer(
-              instance.user_id,
-              instance.ecs_task_def_arn,
-            );
-            await this.supabase.db
-              .from('instances')
-              .update({
-                ecs_task_arn: newTaskArn,
-                status: 'running',
-                restart_count: (instance.restart_count ?? 0) + 1,
-                error_message: null,
-              })
-              .eq('id', instance.id);
+          const newContainerId = await this.containerManager.startContainer(instance.user_id);
+          await this.supabase.db
+            .from('instances')
+            .update({
+              container_id: newContainerId,
+              status: 'running',
+              restart_count: (instance.restart_count ?? 0) + 1,
+              error_message: null,
+            })
+            .eq('id', instance.id);
 
-            await this.supabase.db.from('instance_events').insert({
-              instance_id: instance.id,
-              user_id: instance.user_id,
-              event_type: 'restarted',
-              metadata: { reason: 'crash_detected', restart_count: (instance.restart_count ?? 0) + 1 },
-            });
+          await this.supabase.db.from('instance_events').insert({
+            instance_id: instance.id,
+            user_id: instance.user_id,
+            event_type: 'restarted',
+            metadata: { reason: 'crash_detected', restart_count: (instance.restart_count ?? 0) + 1 },
+          });
 
-            this.logger.log(`Container auto-restarted for user ${instance.user_id} (attempt ${(instance.restart_count ?? 0) + 1})`);
-          }
+          this.logger.log(`Container auto-restarted for user ${instance.user_id} (attempt ${(instance.restart_count ?? 0) + 1})`);
         }
       } catch (err) {
         this.logger.error(`Monitor check failed for user ${instance.user_id}: ${err}`);

@@ -85,6 +85,14 @@ body {
   animation: pulse-dot 2s ease-in-out infinite;
 }
 
+input, textarea, select {
+  color: #18181b;
+}
+
+.gradient-bg {
+  background: linear-gradient(135deg, var(--blue-start) 0%, var(--blue-end) 100%);
+}
+
 /* gradient text */
 .gradient-text-dark {
   background: linear-gradient(to right, #5E6AD2, #818cf8, #5E6AD2);

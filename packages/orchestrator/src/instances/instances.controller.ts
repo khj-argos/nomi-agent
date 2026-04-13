@@ -28,6 +28,11 @@ export class InstancesController {
     return this.instancesService.getByUserId(user.id);
   }
 
+  @Get('me/config')
+  getConfig(@CurrentUser() user: AuthUser) {
+    return this.instancesService.getConfig(user.id);
+  }
+
   @Put('me/config')
   updateConfig(@CurrentUser() user: AuthUser, @Body() dto: UpdateConfigDto) {
     return this.instancesService.updateConfig(user.id, dto);

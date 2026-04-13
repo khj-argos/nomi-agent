@@ -5,6 +5,8 @@ import { NextResponse } from "next/server";
 interface ConfigPayload {
   assistantName?: string;
   agentConfig?: string;
+  anthropicApiKey?: string;
+  hasApiKey?: boolean;
 }
 
 export async function GET() {

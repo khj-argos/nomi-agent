@@ -9,7 +9,6 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@aws-sdk/client-ecs": "^3.758.0",
     "@nestjs/common": "^10.4.0",
     "@nestjs/config": "^3.3.0",
     "@nestjs/core": "^10.4.0",
@@ -18,9 +17,11 @@
     "@slack/socket-mode": "^2.0.6",
     "@slack/web-api": "^7.15.0",
     "@supabase/supabase-js": "^2.49.0",
+    "@types/dockerode": "^4.0.1",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
     "cron": "^3.3.0",
+    "dockerode": "^4.0.10",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "zod": "^3.24.0"

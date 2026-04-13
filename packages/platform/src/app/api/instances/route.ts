@@ -11,7 +11,7 @@ export async function GET() {
 
     const { data: instance } = await supabase
       .from("active_user_instances")
-      .select("instance_id, instance_status, assistant_name, last_activity, ecs_task_arn")
+      .select("instance_id, status, assistant_name, last_activity, container_id")
       .eq("user_id", user.id)
       .single();
 
@@ -32,11 +32,12 @@ export async function GET() {
     return NextResponse.json({
       instance: {
         id: instance.instance_id,
-        status: instance.instance_status as "running" | "stopped" | "starting",
+        status: instance.status as "running" | "stopped" | "starting",
         lastActive,
         agentName: instance.assistant_name,
         channels: {
           telegram: channels?.some((c) => c.type === "telegram") ?? false,
+          slack: channels?.some((c) => c.type === "slack") ?? false,
         },
       },
     });

@@ -32,10 +32,10 @@ const PLANS: Plan[] = [
     badge: "14일 무료",
     features: [
       "독립 AI 에이전트 인스턴스",
-      "본인 Anthropic API 키 (BYOK)",
-      "Telegram 채널 연결",
+      "본인 Anthropic API 키",
+      "Slack 채널 + Telegram 채널 연결",
       "자동 학습 & 진화",
-      "능동적 알림 (1회/일)",
+      "능동적 알림",
       "기본 온보딩 지원",
     ],
     cta: "무료로 시작하기",
@@ -47,10 +47,10 @@ const PLANS: Plan[] = [
     monthlyPrice: 35,
     features: [
       "독립 AI 에이전트 인스턴스",
-      "본인 Anthropic API 키 (BYOK)",
-      "Telegram 채널 연결",
+      "본인 Anthropic API 키",
+      "Slack 채널 + Telegram 채널 연결",
       "자동 학습 & 진화",
-      "능동적 알림 (1회/일)",
+      "능동적 알림",
       "기본 온보딩 지원",
     ],
     cta: "Starter로 시작하기",
@@ -59,16 +59,16 @@ const PLANS: Plan[] = [
   {
     type: "paid",
     name: "Pro",
-    desc: "API 키 없이 바로 사용, 최고 성능",
+    desc: "고성능 AI + 우선 지원",
     monthlyPrice: 90,
     badge: "인기",
     features: [
       "독립 AI 에이전트 인스턴스",
-      "LLM 포함 (API 키 불필요)",
-      "Telegram + 추가 채널",
+      "본인 Anthropic API 키",
+      "Slack 채널 + Telegram 외 다수 추가 채널",
       "자동 학습 & 진화",
       "능동적 알림 (무제한)",
-      "고급 온보딩 + 우선 지원",
+      "우선 기술 지원 + 전담 온보딩",
       "CLAUDE.md 직접 편집",
     ],
     cta: "Pro로 시작하기",
@@ -135,7 +135,7 @@ export function PricingSection() {
                   )}
 
                   <a
-                    href="/signup"
+                    href="/auth/signup"
                     className={`w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-semibold text-sm transition-all duration-200 ease-out active:scale-[0.98] ${
                       isHighlighted
                         ? "bg-[#5E6AD2] text-white hover:opacity-90 shadow-[0_0_0_1px_rgba(94,106,210,0.5),0_4px_12px_rgba(94,106,210,0.3),inset_0_1px_0_0_rgba(255,255,255,0.2)]"

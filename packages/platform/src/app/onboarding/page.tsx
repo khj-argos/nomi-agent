@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Bot, Brain, Key, MessageCircle, ArrowRight } from "lucide-react";
+import { Bot, Brain, Key, MessageCircle, ArrowRight, Hash } from "lucide-react";
 
 type AgentTemplate = "developer" | "writer" | "marketer" | "assistant" | "news" | "custom";
+type ChannelType = "telegram" | "slack" | null;
 
 interface OnboardingData {
   anthropicApiKey: string;
@@ -12,8 +13,10 @@ interface OnboardingData {
   agentTemplate: AgentTemplate;
   customPrompt: string;
   assistantName: string;
+  channelType: ChannelType;
   telegramBotToken: string;
-  skipTelegram: boolean;
+  slackBotToken: string;
+  skipChannel: boolean;
 }
 
 interface StepProps {
@@ -22,6 +25,8 @@ interface StepProps {
   onNext: () => void;
   onPrev?: () => void;
 }
+
+const TOTAL_STEPS = 5;
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -32,15 +37,17 @@ export default function OnboardingPage() {
     agentTemplate: "developer",
     customPrompt: "",
     assistantName: "Andy",
+    channelType: null,
     telegramBotToken: "",
-    skipTelegram: false,
+    slackBotToken: "",
+    skipChannel: false,
   });
 
   const updateData = (updates: Partial<OnboardingData>) => {
     setData((prev) => ({ ...prev, ...updates }));
   };
 
-  const nextStep = () => setStep((s) => Math.min(s + 1, 4));
+  const nextStep = () => setStep((s) => Math.min(s + 1, TOTAL_STEPS));
   const prevStep = () => setStep((s) => Math.max(s - 1, 1));
 
   return (
@@ -55,7 +62,7 @@ export default function OnboardingPage() {
       </div>
 
       <div className="flex justify-center gap-2 mb-8">
-        {[1, 2, 3, 4].map((i) => (
+        {Array.from({ length: TOTAL_STEPS }, (_, i) => i + 1).map((i) => (
           <div
             key={i}
             className={`h-2 rounded-full transition-all duration-300 ${
@@ -72,8 +79,9 @@ export default function OnboardingPage() {
       <div className="bg-white border border-zinc-100 rounded-3xl shadow-xl shadow-zinc-200/50 p-6 md:p-8 overflow-hidden relative min-h-[400px]">
         {step === 1 && <Step1ApiKey data={data} updateData={updateData} onNext={nextStep} />}
         {step === 2 && <Step2Agent data={data} updateData={updateData} onNext={nextStep} onPrev={prevStep} />}
-        {step === 3 && <Step3Telegram data={data} updateData={updateData} onNext={nextStep} onPrev={prevStep} />}
-        {step === 4 && <Step4Complete data={data} router={router} />}
+        {step === 3 && <Step3ChannelSelect data={data} updateData={updateData} onNext={nextStep} onPrev={prevStep} />}
+        {step === 4 && <Step4ChannelSetup data={data} updateData={updateData} onNext={nextStep} onPrev={prevStep} />}
+        {step === 5 && <Step5Complete data={data} router={router} />}
       </div>
     </div>
   );
@@ -125,26 +133,17 @@ function Step1ApiKey({ data, updateData, onNext }: StepProps) {
               <div className="text-xs text-zinc-500">비용은 내가 직접 제어해요</div>
             </div>
           </div>
-          
           {mode === "byok" && (
             <div className="pl-7 space-y-3 animate-in fade-in duration-300">
               <input
                 type="text"
                 placeholder="sk-ant-..."
                 value={data.anthropicApiKey}
-                onChange={(e) => {
-                  updateData({ anthropicApiKey: e.target.value });
-                  setError("");
-                }}
-                className="w-full px-4 py-2.5 bg-white border border-zinc-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                onChange={(e) => { updateData({ anthropicApiKey: e.target.value }); setError(""); }}
+                className="w-full px-4 py-2.5 bg-zinc-50 border border-zinc-300 rounded-xl text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
               />
               {error && <p className="text-xs text-red-500">{error}</p>}
-              <a
-                href="https://console.anthropic.com"
-                target="_blank"
-                rel="noreferrer"
-                className="text-xs text-blue-500 hover:underline inline-block"
-              >
+              <a href="https://console.anthropic.com" target="_blank" rel="noreferrer" className="text-xs text-blue-500 hover:underline inline-block">
                 API 키 발급하는 법 →
               </a>
             </div>
@@ -157,12 +156,7 @@ function Step1ApiKey({ data, updateData, onNext }: StepProps) {
           }`}
         >
           <div className="flex items-center gap-3">
-            <input
-              type="radio"
-              checked={mode === "later"}
-              onChange={() => setMode("later")}
-              className="w-4 h-4 text-blue-500 focus:ring-blue-500"
-            />
+            <input type="radio" checked={mode === "later"} onChange={() => setMode("later")} className="w-4 h-4 text-blue-500 focus:ring-blue-500" />
             <div>
               <div className="font-semibold text-zinc-900">나중에 설정하기</div>
               <div className="text-xs text-zinc-500">일단 시작하고 나중에 추가할 수 있어요</div>
@@ -223,10 +217,10 @@ function Step2Agent({ data, updateData, onNext, onPrev }: StepProps) {
         {data.agentTemplate === "custom" && (
           <div className="animate-in fade-in slide-in-from-top-2 duration-300">
             <textarea
-              placeholder="어떤 AI가 되길 원하는지 자유롭게 설명해주세요 (예: 친절하고 유머러스한 파이썬 전문가)"
+              placeholder="어떤 AI가 되길 원하는지 자유롭게 설명해주세요"
               value={data.customPrompt}
               onChange={(e) => updateData({ customPrompt: e.target.value })}
-              className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all min-h-[100px] resize-none"
+              className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all min-h-[100px] resize-none"
             />
           </div>
         )}
@@ -237,16 +231,13 @@ function Step2Agent({ data, updateData, onNext, onPrev }: StepProps) {
             type="text"
             value={data.assistantName}
             onChange={(e) => updateData({ assistantName: e.target.value })}
-            className="w-full px-4 py-2.5 bg-white border border-zinc-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+            className="w-full px-4 py-2.5 bg-zinc-50 border border-zinc-300 rounded-xl text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
           />
         </div>
       </div>
 
       <div className="flex gap-3">
-        <button
-          onClick={onPrev}
-          className="px-5 py-3 rounded-xl font-medium text-zinc-600 bg-zinc-100 hover:bg-zinc-200 transition-colors"
-        >
+        <button onClick={onPrev} className="px-5 py-3 rounded-xl font-medium text-zinc-600 bg-zinc-100 hover:bg-zinc-200 transition-colors">
           이전
         </button>
         <button
@@ -261,7 +252,115 @@ function Step2Agent({ data, updateData, onNext, onPrev }: StepProps) {
   );
 }
 
-function Step3Telegram({ data, updateData, onNext, onPrev }: StepProps) {
+function Step3ChannelSelect({ data, updateData, onNext, onPrev }: StepProps) {
+  const handleSelect = (type: ChannelType) => {
+    updateData({ channelType: type, skipChannel: type === null });
+  };
+
+  const handleNext = () => {
+    if (data.channelType === null) {
+      updateData({ skipChannel: true });
+    }
+    onNext();
+  };
+
+  return (
+    <div className="space-y-6 animate-in fade-in slide-in-from-right-8 duration-500">
+      <div className="space-y-2 text-center">
+        <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <MessageCircle className="w-6 h-6 text-blue-500" />
+        </div>
+        <h2 className="text-2xl font-bold text-zinc-900">채널을 선택하세요</h2>
+        <p className="text-zinc-500 text-sm">어디서 AI와 대화하고 싶으신가요?</p>
+      </div>
+
+      <div className="space-y-3">
+        <button
+          onClick={() => handleSelect("telegram")}
+          className={`w-full p-4 rounded-2xl border-2 text-left transition-all flex items-center gap-4 ${
+            data.channelType === "telegram"
+              ? "border-blue-500 bg-blue-50/50"
+              : "border-zinc-100 hover:border-zinc-200 bg-white"
+          }`}
+        >
+          <div className="w-12 h-12 rounded-xl bg-sky-100 flex items-center justify-center flex-shrink-0">
+            <span className="text-2xl">✈️</span>
+          </div>
+          <div>
+            <div className="font-semibold text-zinc-900">Telegram</div>
+            <div className="text-xs text-zinc-500 mt-0.5">봇 토큰으로 바로 연결</div>
+          </div>
+          {data.channelType === "telegram" && (
+            <div className="ml-auto w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0">
+              <span className="text-white text-xs">✓</span>
+            </div>
+          )}
+        </button>
+
+        <button
+          onClick={() => handleSelect("slack")}
+          className={`w-full p-4 rounded-2xl border-2 text-left transition-all flex items-center gap-4 ${
+            data.channelType === "slack"
+              ? "border-blue-500 bg-blue-50/50"
+              : "border-zinc-100 hover:border-zinc-200 bg-white"
+          }`}
+        >
+          <div className="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center flex-shrink-0">
+            <Hash className="w-6 h-6 text-purple-500" />
+          </div>
+          <div>
+            <div className="font-semibold text-zinc-900">Slack</div>
+            <div className="text-xs text-zinc-500 mt-0.5">워크스페이스에 AI 추가</div>
+          </div>
+          {data.channelType === "slack" && (
+            <div className="ml-auto w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0">
+              <span className="text-white text-xs">✓</span>
+            </div>
+          )}
+        </button>
+      </div>
+
+      <div className="flex gap-3">
+        <button onClick={onPrev} className="px-5 py-3 rounded-xl font-medium text-zinc-600 bg-zinc-100 hover:bg-zinc-200 transition-colors">
+          이전
+        </button>
+        <button
+          onClick={handleNext}
+          disabled={data.channelType === null}
+          className="flex-1 gradient-bg text-white font-semibold py-3 rounded-xl hover:opacity-90 transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-500/25 disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          다음 단계
+          <ArrowRight className="w-4 h-4" />
+        </button>
+      </div>
+
+      <button
+        onClick={() => { updateData({ channelType: null, skipChannel: true }); onNext(); }}
+        className="w-full text-sm text-zinc-400 hover:text-zinc-600 transition-colors py-1"
+      >
+        나중에 연결하기
+      </button>
+    </div>
+  );
+}
+
+function Step4ChannelSetup({ data, updateData, onNext, onPrev }: StepProps) {
+  useEffect(() => {
+    if (!data.channelType) {
+      onNext();
+    }
+  }, []);
+
+  if (data.channelType === "telegram") {
+    return <Step4Telegram data={data} updateData={updateData} onNext={onNext} onPrev={onPrev} />;
+  }
+  if (data.channelType === "slack") {
+    return <Step4Slack data={data} updateData={updateData} onNext={onNext} onPrev={onPrev} />;
+  }
+  return null;
+}
+
+function Step4Telegram({ data, updateData, onNext, onPrev }: StepProps) {
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [error, setError] = useState("");
 
@@ -272,16 +371,10 @@ function Step3Telegram({ data, updateData, onNext, onPrev }: StepProps) {
         setError("올바른 봇 토큰 형식이 아닙니다.");
         return;
       }
-      updateData({ skipTelegram: false });
+      updateData({ skipChannel: false });
     } else {
-      updateData({ skipTelegram: true });
+      updateData({ skipChannel: true });
     }
-    setError("");
-    onNext();
-  };
-
-  const handleSkip = () => {
-    updateData({ skipTelegram: true, telegramBotToken: "" });
     setError("");
     onNext();
   };
@@ -289,8 +382,8 @@ function Step3Telegram({ data, updateData, onNext, onPrev }: StepProps) {
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-right-8 duration-500">
       <div className="space-y-2 text-center">
-        <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-          <MessageCircle className="w-6 h-6 text-blue-500" />
+        <div className="w-12 h-12 bg-sky-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <span className="text-2xl">✈️</span>
         </div>
         <h2 className="text-2xl font-bold text-zinc-900">Telegram에서 AI를 만나보세요</h2>
         <p className="text-zinc-500 text-sm">봇 토큰을 입력하면 Telegram에서 바로 대화할 수 있어요.</p>
@@ -321,49 +414,123 @@ function Step3Telegram({ data, updateData, onNext, onPrev }: StepProps) {
             type="text"
             placeholder="1234567890:ABCdefGHIjklmNOPqrstuvWXYZ"
             value={data.telegramBotToken}
-            onChange={(e) => {
-              updateData({ telegramBotToken: e.target.value });
-              setError("");
-            }}
-            className="w-full px-4 py-2.5 bg-white border border-zinc-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-mono"
+            onChange={(e) => { updateData({ telegramBotToken: e.target.value }); setError(""); }}
+            className="w-full px-4 py-2.5 bg-zinc-50 border border-zinc-300 rounded-xl text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-mono"
           />
           {error && <p className="text-xs text-red-500">{error}</p>}
         </div>
       </div>
 
-      <div className="flex flex-col gap-3">
-        <div className="flex gap-3">
-          <button
-            onClick={onPrev}
-            className="px-5 py-3 rounded-xl font-medium text-zinc-600 bg-zinc-100 hover:bg-zinc-200 transition-colors"
-          >
-            이전
-          </button>
-          <button
-            onClick={handleNext}
-            className="flex-1 gradient-bg text-white font-semibold py-3 rounded-xl hover:opacity-90 transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-500/25"
-          >
-            연결하기
-            <ArrowRight className="w-4 h-4" />
-          </button>
-        </div>
+      <div className="flex gap-3">
+        <button onClick={onPrev} className="px-5 py-3 rounded-xl font-medium text-zinc-600 bg-zinc-100 hover:bg-zinc-200 transition-colors">
+          이전
+        </button>
         <button
-          onClick={handleSkip}
-          className="text-sm text-zinc-400 hover:text-zinc-600 transition-colors py-2"
+          onClick={handleNext}
+          className="flex-1 gradient-bg text-white font-semibold py-3 rounded-xl hover:opacity-90 transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-500/25"
         >
-          나중에 연결하기
+          연결하기
+          <ArrowRight className="w-4 h-4" />
         </button>
       </div>
+      <button
+        onClick={() => { updateData({ skipChannel: true, telegramBotToken: "" }); onNext(); }}
+        className="w-full text-sm text-zinc-400 hover:text-zinc-600 transition-colors py-1"
+      >
+        나중에 연결하기
+      </button>
     </div>
   );
 }
 
-interface Step4Props {
+function Step4Slack({ data, updateData, onNext, onPrev }: StepProps) {
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleNext = () => {
+    if (data.slackBotToken) {
+      if (!data.slackBotToken.startsWith("xoxb-")) {
+        setError("Bot Token은 'xoxb-'로 시작해야 합니다.");
+        return;
+      }
+      updateData({ skipChannel: false });
+    } else {
+      updateData({ skipChannel: true });
+    }
+    setError("");
+    onNext();
+  };
+
+  return (
+    <div className="space-y-6 animate-in fade-in slide-in-from-right-8 duration-500">
+      <div className="space-y-2 text-center">
+        <div className="w-12 h-12 bg-purple-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <Hash className="w-6 h-6 text-purple-500" />
+        </div>
+        <h2 className="text-2xl font-bold text-zinc-900">Slack에서 AI를 만나보세요</h2>
+        <p className="text-zinc-500 text-sm">Bot Token을 입력하면 워크스페이스에서 바로 대화할 수 있어요.</p>
+      </div>
+
+      <div className="space-y-4">
+        <div className="border border-zinc-200 rounded-xl overflow-hidden bg-zinc-50">
+          <button
+            onClick={() => setIsGuideOpen(!isGuideOpen)}
+            className="w-full px-4 py-3 flex items-center justify-between text-sm font-medium text-zinc-700 hover:bg-zinc-100 transition-colors"
+          >
+            <span>Bot Token 발급 가이드</span>
+            <span className={`transition-transform ${isGuideOpen ? "rotate-180" : ""}`}>▼</span>
+          </button>
+          {isGuideOpen && (
+            <div className="px-4 pb-4 text-sm text-zinc-600 space-y-2 animate-in fade-in slide-in-from-top-2">
+              <p>1. <a href="https://api.slack.com/apps" target="_blank" rel="noreferrer" className="text-blue-500 hover:underline">api.slack.com/apps</a> 에서 앱 생성</p>
+              <p>2. <strong>OAuth & Permissions</strong> → Bot Token Scopes 추가</p>
+              <p>3. 워크스페이스에 앱 설치</p>
+              <p>4. <strong>Bot User OAuth Token</strong> 복사</p>
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-semibold text-zinc-700 ml-1">Bot Token</label>
+          <input
+            type="text"
+            placeholder="xoxb-..."
+            value={data.slackBotToken}
+            onChange={(e) => { updateData({ slackBotToken: e.target.value }); setError(""); }}
+            className="w-full px-4 py-2.5 bg-zinc-50 border border-zinc-300 rounded-xl text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-mono"
+          />
+          {error && <p className="text-xs text-red-500">{error}</p>}
+        </div>
+      </div>
+
+      <div className="flex gap-3">
+        <button onClick={onPrev} className="px-5 py-3 rounded-xl font-medium text-zinc-600 bg-zinc-100 hover:bg-zinc-200 transition-colors">
+          이전
+        </button>
+        <button
+          onClick={handleNext}
+          className="flex-1 gradient-bg text-white font-semibold py-3 rounded-xl hover:opacity-90 transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-500/25"
+        >
+          연결하기
+          <ArrowRight className="w-4 h-4" />
+        </button>
+      </div>
+      <button
+        onClick={() => { updateData({ skipChannel: true, slackBotToken: "" }); onNext(); }}
+        className="w-full text-sm text-zinc-400 hover:text-zinc-600 transition-colors py-1"
+      >
+        나중에 연결하기
+      </button>
+    </div>
+  );
+}
+
+interface Step5Props {
   data: OnboardingData;
   router: ReturnType<typeof useRouter>;
 }
 
-function Step4Complete({ data, router }: Step4Props) {
+function Step5Complete({ data, router }: Step5Props) {
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -376,7 +543,8 @@ function Step4Complete({ data, router }: Step4Props) {
           body: JSON.stringify({
             assistantName: data.assistantName,
             agentConfig: data.agentTemplate === "custom" ? data.customPrompt : data.agentTemplate,
-            telegramBotToken: data.skipTelegram ? undefined : data.telegramBotToken,
+            telegramBotToken: data.channelType === "telegram" && !data.skipChannel ? data.telegramBotToken : undefined,
+            slackBotToken: data.channelType === "slack" && !data.skipChannel ? data.slackBotToken : undefined,
             anthropicApiKey: data.skipApiKey ? undefined : data.anthropicApiKey,
           }),
         });
@@ -388,11 +556,7 @@ function Step4Complete({ data, router }: Step4Props) {
         setStatus("success");
       } catch (err: unknown) {
         setStatus("error");
-        if (err instanceof Error) {
-          setErrorMessage(err.message);
-        } else {
-          setErrorMessage("알 수 없는 오류가 발생했습니다.");
-        }
+        setErrorMessage(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.");
       }
     };
 
@@ -436,25 +600,27 @@ function Step4Complete({ data, router }: Step4Props) {
     );
   }
 
+  const channelLabel = data.channelType === "telegram" ? "Telegram" : data.channelType === "slack" ? "Slack" : null;
+
   return (
     <div className="py-8 flex flex-col items-center justify-center space-y-8 animate-in zoom-in-95 duration-500">
       <div className="relative">
         <div className="text-6xl animate-bounce">🎉</div>
         <div className="absolute -inset-4 bg-blue-500/20 blur-2xl rounded-full -z-10" />
       </div>
-      
+
       <div className="text-center space-y-3">
         <h2 className="text-2xl font-bold text-zinc-900">
           <span className="gradient-text">{data.assistantName}</span>님의 AI가 준비됐어요!
         </h2>
         <p className="text-zinc-500 text-sm max-w-[260px] mx-auto leading-relaxed">
-          {data.skipTelegram 
-            ? "대시보드에서 Telegram을 연결하고 대화를 시작해보세요."
-            : "Telegram에서 메시지를 보내보세요!"}
+          {data.skipChannel || !channelLabel
+            ? "대시보드에서 채널을 연결하고 대화를 시작해보세요."
+            : `${channelLabel}에서 메시지를 보내보세요!`}
         </p>
       </div>
 
-      {!data.skipTelegram && (
+      {!data.skipChannel && channelLabel && (
         <div className="bg-zinc-50 border border-zinc-100 rounded-2xl p-4 w-full max-w-xs">
           <p className="text-xs text-zinc-500 mb-2 font-medium">첫 메시지 예시:</p>
           <div className="bg-white border border-zinc-200 rounded-xl px-4 py-3 shadow-sm flex items-center gap-3">

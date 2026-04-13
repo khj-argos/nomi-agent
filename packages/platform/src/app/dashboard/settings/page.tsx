@@ -11,18 +11,20 @@ export default function SettingsPage() {
     claudeMd: "",
     anthropicApiKey: "",
   });
+  const [hasApiKey, setHasApiKey] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/instances/config")
       .then((r) => r.json())
-      .then((data: { assistantName?: string; agentConfig?: string }) => {
+      .then((data: { assistantName?: string; agentConfig?: string; hasApiKey?: boolean }) => {
         setFormData((prev) => ({
           ...prev,
           agentName: data.assistantName ?? "",
           claudeMd: data.agentConfig ?? "",
         }));
+        setHasApiKey(!!data.hasApiKey);
       })
       .catch(() => {})
       .finally(() => setFetching(false));
@@ -46,6 +48,7 @@ export default function SettingsPage() {
         body: JSON.stringify({
           assistantName: formData.agentName,
           agentConfig: formData.claudeMd,
+          ...(formData.anthropicApiKey ? { anthropicApiKey: formData.anthropicApiKey } : {}),
         }),
       });
 
@@ -124,17 +127,24 @@ export default function SettingsPage() {
             </div>
 
             <div>
-              <label htmlFor="anthropicApiKey" className="block text-sm font-medium text-zinc-700 mb-1.5">
-                Anthropic API 키
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label htmlFor="anthropicApiKey" className="block text-sm font-medium text-zinc-700">
+                  Anthropic API 키
+                </label>
+                {hasApiKey && (
+                  <span className="text-xs text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full font-medium">
+                    ✓ 등록됨
+                  </span>
+                )}
+              </div>
               <input
                 type="password"
                 id="anthropicApiKey"
                 name="anthropicApiKey"
                 value={formData.anthropicApiKey}
                 onChange={handleChange}
+                placeholder={hasApiKey ? "새 키를 입력하면 교체됩니다" : "sk-ant-..."}
                 className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all"
-                placeholder="sk-ant-..."
               />
               <p className="text-xs text-zinc-500 mt-2">
                 API 키는 암호화되어 안전하게 저장되며, 오직 당신의 인스턴스에서만 사용됩니다.

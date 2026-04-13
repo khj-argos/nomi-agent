@@ -72,7 +72,7 @@ export class SlackSocketService implements OnModuleInit, OnModuleDestroy {
 
     const { data: channel } = await this.supabase.db
       .from('channels')
-      .select('user_id, instance_id, instances(ecs_task_arn, ecs_task_def_arn)')
+      .select('user_id, instance_id, instances(container_id)')
       .eq('type', 'slack')
       .eq('identifier', teamId)
       .eq('is_active', true)
@@ -90,13 +90,12 @@ export class SlackSocketService implements OnModuleInit, OnModuleDestroy {
     });
 
     const instance = channel.instances as unknown as Record<string, unknown>;
-    const taskArn = instance?.ecs_task_arn as string | null;
-    const taskDefArn = instance?.ecs_task_def_arn as string | null;
+    const containerId = instance?.container_id as string | null;
 
-    if (!taskArn && taskDefArn) {
+    if (!containerId) {
       await this.sendMessage(channelId, '잠깐만요, 준비 중이에요 🔄');
-      const newTaskArn = await this.containerManager.startContainer(channel.user_id, taskDefArn);
-      await this.instancesService.updateTaskArn(channel.user_id, newTaskArn);
+      const newContainerId = await this.containerManager.startContainer(channel.user_id);
+      await this.instancesService.updateContainerId(channel.user_id, newContainerId);
       this.logger.log(`Container started for Slack user ${channel.user_id}`);
     }
 

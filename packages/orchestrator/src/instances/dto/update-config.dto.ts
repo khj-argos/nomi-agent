@@ -9,4 +9,8 @@ export class UpdateConfigDto {
   @IsOptional()
   @IsString()
   agentConfig?: string;
+
+  @IsOptional()
+  @IsString()
+  anthropicApiKey?: string;
 }

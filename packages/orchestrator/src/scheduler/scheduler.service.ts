@@ -22,7 +22,7 @@ export class SchedulerService {
 
     const { data: dueSchedules } = await this.supabase.db
       .from('schedules')
-      .select('*, instances(ecs_task_arn, ecs_task_def_arn, status)')
+      .select('*, instances(container_id, status)')
       .eq('is_active', true)
       .lte('next_run_at', now);
 
@@ -44,7 +44,7 @@ export class SchedulerService {
 
     const { data: idleInstances } = await this.supabase.db
       .from('instances')
-      .select('id, user_id, ecs_task_arn')
+      .select('id, user_id, container_id')
       .eq('status', 'running')
       .lt('last_activity', cutoff);
 
@@ -54,10 +54,10 @@ export class SchedulerService {
 
     for (const instance of idleInstances) {
       try {
-        if (instance.ecs_task_arn) {
-          await this.containerManager.stopContainer(instance.ecs_task_arn);
+        if (instance.container_id) {
+          await this.containerManager.stopContainer(instance.container_id);
         }
-        await this.instancesService.updateTaskArn(instance.user_id, null);
+        await this.instancesService.updateContainerId(instance.user_id, null);
 
         await this.supabase.db.from('usage_logs').insert({
           user_id: instance.user_id,
@@ -126,21 +126,11 @@ export class SchedulerService {
 
   private async runSchedule(schedule: Record<string, unknown>) {
     const instance = schedule.instances as Record<string, unknown>;
-    const taskDefArn = instance?.ecs_task_def_arn as string | null;
-    const taskArn = instance?.ecs_task_arn as string | null;
+    const containerId = instance?.container_id as string | null;
 
-    if (!taskDefArn) {
-      this.logger.warn(`No task definition for schedule ${schedule.id}`);
-      return;
-    }
-
-    let activeTaskArn = taskArn;
-    if (!activeTaskArn) {
-      activeTaskArn = await this.containerManager.startContainer(
-        schedule.user_id as string,
-        taskDefArn,
-      );
-      await this.instancesService.updateTaskArn(schedule.user_id as string, activeTaskArn);
+    if (!containerId) {
+      const newContainerId = await this.containerManager.startContainer(schedule.user_id as string);
+      await this.instancesService.updateContainerId(schedule.user_id as string, newContainerId);
     }
 
     await this.supabase.db.from('schedule_run_logs').insert({

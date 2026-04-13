@@ -1,37 +1,60 @@
 services:
   platform:
     build:
-      context: ./packages/platform
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: packages/platform/Dockerfile
+      args:
+        - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+        - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+        - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
+    image: nanoclaw-platform:latest
     ports:
       - "3000:3000"
+    env_file: .env
     environment:
-      - NODE_ENV=development
-      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
-      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
-      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
-      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - NODE_ENV=production
       - ORCHESTRATOR_URL=http://orchestrator:4001
-      - ORCHESTRATOR_SECRET=${ORCHESTRATOR_SECRET}
     depends_on:
-      - orchestrator
+      orchestrator:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - nanoclaw
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   orchestrator:
     build:
-      context: ./packages/orchestrator
-      dockerfile: Dockerfile
-    ports:
-      - "4001:4001"
+      context: .
+      dockerfile: packages/orchestrator/Dockerfile
+    image: nanoclaw-orchestrator:latest
+    env_file: .env
     environment:
-      - NODE_ENV=development
+      - NODE_ENV=production
       - PORT=4001
-      - DATA_ROOT=/data/nanoclaw-instances
-      - ORCHESTRATOR_SECRET=${ORCHESTRATOR_SECRET}
+      - ENGINE_IMAGE_URI=nanoclaw-agent:latest
+      - DATA_ROOT=${DATA_ROOT:-/data/nanoclaw-instances}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - nanoclaw-data:/data/nanoclaw-instances
-    # 내부 네트워크만 — 외부 직접 노출 없음 (Caddy가 platform만 프록시)
+      - ${DATA_ROOT:-/data/nanoclaw-instances}:${DATA_ROOT:-/data/nanoclaw-instances}
+    restart: unless-stopped
+    networks:
+      - nanoclaw
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:4001/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
-volumes:
-  nanoclaw-data:
-    driver: local
+networks:
+  nanoclaw:
+    driver: bridge

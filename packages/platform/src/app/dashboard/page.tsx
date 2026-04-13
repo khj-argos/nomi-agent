@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Bot, CheckCircle, MessageCircle, Plus, Settings, Wifi, WifiOff } from "lucide-react";
+import { Bot, CheckCircle, MessageCircle, Plus, Settings, Wifi, WifiOff, ArrowRight } from "lucide-react";
 import Link from "next/link";
 
 type InstanceStatus = "running" | "stopped" | "starting";
@@ -13,6 +13,7 @@ interface Instance {
   agentName: string;
   channels: {
     telegram: boolean;
+    slack: boolean;
   };
 }
 
@@ -68,6 +69,27 @@ export default function DashboardPage() {
       <div className="bg-red-50 text-red-600 p-6 rounded-2xl border border-red-100">
         <h3 className="font-semibold mb-2">오류 발생</h3>
         <p>{error}</p>
+      </div>
+    );
+  }
+
+  if (!instance) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6 text-center">
+        <div className="w-20 h-20 rounded-2xl gradient-bg flex items-center justify-center">
+          <Bot className="w-10 h-10 text-white" />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-2xl font-bold text-zinc-900">아직 AI가 없어요</h2>
+          <p className="text-zinc-500">온보딩을 완료하면 나만의 AI 에이전트가 만들어져요.</p>
+        </div>
+        <Link
+          href="/onboarding"
+          className="gradient-bg text-white font-semibold px-8 py-3 rounded-xl hover:opacity-90 transition-all flex items-center gap-2 shadow-lg shadow-blue-500/25"
+        >
+          AI 만들러 가기
+          <ArrowRight className="w-4 h-4" />
+        </Link>
       </div>
     );
   }
@@ -152,28 +174,36 @@ export default function DashboardPage() {
             <h2 className="text-lg font-semibold text-zinc-900">연결된 채널</h2>
           </div>
 
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 rounded-xl border border-zinc-100 bg-zinc-50/50">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center">
-                  <span className="text-white text-xs font-bold">TG</span>
+          <div className="space-y-3">
+            {[
+              { key: "telegram" as const, label: "Telegram", badge: "TG", color: "bg-sky-500" },
+              { key: "slack" as const, label: "Slack", badge: "#", color: "bg-purple-500" },
+            ].map(({ key, label, badge, color }) => (
+              <div key={key} className="flex items-center justify-between p-4 rounded-xl border border-zinc-100 bg-zinc-50/50">
+                <div className="flex items-center gap-3">
+                  <div className={`w-8 h-8 rounded-full ${color} flex items-center justify-center`}>
+                    <span className="text-white text-xs font-bold">{badge}</span>
+                  </div>
+                  <span className="font-medium text-zinc-900">{label}</span>
                 </div>
-                <span className="font-medium text-zinc-900">Telegram</span>
+                {instance?.channels[key] ? (
+                  <div className="flex items-center gap-1.5 text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full text-sm font-medium">
+                    <CheckCircle className="w-4 h-4" />
+                    연결됨
+                  </div>
+                ) : (
+                  <span className="text-sm text-zinc-500">미연결 상태</span>
+                )}
               </div>
-              {instance?.channels.telegram ? (
-                <div className="flex items-center gap-1.5 text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full text-sm font-medium">
-                  <CheckCircle className="w-4 h-4" />
-                  연결됨
-                </div>
-              ) : (
-                <span className="text-sm text-zinc-500">미연결 상태</span>
-              )}
-            </div>
+            ))}
 
-            <button className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-dashed border-zinc-300 text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 hover:border-zinc-400 transition-all">
+            <Link
+              href="/dashboard/channels"
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-dashed border-zinc-300 text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 hover:border-zinc-400 transition-all"
+            >
               <Plus className="w-4 h-4" />
               <span className="font-medium">채널 추가</span>
-            </button>
+            </Link>
           </div>
         </div>
 

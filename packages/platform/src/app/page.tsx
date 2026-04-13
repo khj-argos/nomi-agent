@@ -103,7 +103,7 @@ function HeroSection() {
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a
-              href="/signup"
+              href="/auth/signup"
               className="bg-[#5E6AD2] text-white font-semibold px-10 py-4 rounded-full text-base transition-all duration-200 ease-out hover:-translate-y-1 active:scale-[0.98] shadow-[0_0_0_1px_rgba(94,106,210,0.5),0_4px_12px_rgba(94,106,210,0.3),inset_0_1px_0_0_rgba(255,255,255,0.2)] flex items-center justify-center gap-2"
             >
               14일 무료로 시작하기
@@ -343,7 +343,7 @@ function FinalCTASection() {
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <a
-            href="/signup"
+            href="/auth/signup"
             className="bg-emerald-500 text-white font-semibold px-10 py-4 rounded-full text-lg transition-all duration-200 ease-out hover:-translate-y-1 active:scale-[0.98] shadow-[0_0_0_1px_rgba(16,185,129,0.5),0_4px_12px_rgba(16,185,129,0.3),inset_0_1px_0_0_rgba(255,255,255,0.2),0_0_40px_rgba(16,185,129,0.3)] flex items-center justify-center gap-2"
           >
             14일 무료로 시작하기

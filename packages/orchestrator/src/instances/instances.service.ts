@@ -11,6 +11,7 @@ import { SupabaseService } from '../common/supabase/supabase.service';
 import { CreateInstanceDto } from './dto/create-instance.dto';
 import { UpdateConfigDto } from './dto/update-config.dto';
 import { encrypt } from '../common/crypto/encrypt';
+import { writeFileSync, mkdirSync } from 'fs';
 
 const DEFAULT_CLAUDE_MD = (assistantName: string) => `# ${assistantName}
 
@@ -72,7 +73,7 @@ export class InstancesService {
         status: 'creating',
         assistant_name: assistantName,
         agent_config: agentConfig,
-        efs_path: `/users/${userId}`,
+        data_path: `/data/nanoclaw-instances/${userId}`,
       })
       .select()
       .single();
@@ -82,11 +83,9 @@ export class InstancesService {
     }
 
     try {
-      const taskDefArn = await this.containerManager.registerTaskDefinition(userId);
-
       await this.supabase.db
         .from('instances')
-        .update({ status: 'stopped', ecs_task_def_arn: taskDefArn })
+        .update({ status: 'stopped' })
         .eq('id', instance.id);
 
       await this.supabase.db.from('instance_events').insert({
@@ -115,7 +114,7 @@ export class InstancesService {
 
       await this.createOnboardingSequences(userId, instance.id);
 
-      return { ...instance, status: 'stopped', ecs_task_def_arn: taskDefArn };
+      return { ...instance, status: 'stopped' };
     } catch (err) {
       await this.supabase.db
         .from('instances')
@@ -136,25 +135,90 @@ export class InstancesService {
     return data;
   }
 
+  async getConfig(userId: string) {
+    const { data, error } = await this.supabase.db
+      .from('active_user_instances')
+      .select('assistant_name, agent_config')
+      .eq('user_id', userId)
+      .single();
+
+    if (error || !data) throw new NotFoundException('Instance not found');
+
+    const { data: keyData } = await this.supabase.db
+      .from('user_api_keys')
+      .select('is_verified')
+      .eq('user_id', userId)
+      .single();
+
+    return {
+      assistantName: data.assistant_name,
+      agentConfig: data.agent_config,
+      hasApiKey: !!keyData,
+    };
+  }
+
   async updateConfig(userId: string, dto: UpdateConfigDto) {
     const instance = await this.getByUserId(userId);
+    const updatedFields: string[] = [];
 
-    const updates: Record<string, string> = {};
-    if (dto.assistantName) updates.assistant_name = dto.assistantName;
-    if (dto.agentConfig) updates.agent_config = dto.agentConfig;
+    if (dto.assistantName || dto.agentConfig) {
+      const updates: Record<string, string> = {};
+      if (dto.assistantName) updates.assistant_name = dto.assistantName;
+      if (dto.agentConfig) updates.agent_config = dto.agentConfig;
 
-    const { error } = await this.supabase.db
-      .from('instances')
-      .update(updates)
-      .eq('user_id', userId);
+      const { error } = await this.supabase.db
+        .from('instances')
+        .update(updates)
+        .eq('user_id', userId);
 
-    if (error) throw new BadRequestException(`Failed to update config: ${error.message}`);
+      if (error) throw new BadRequestException(`Failed to update config: ${error.message}`);
+      updatedFields.push(...Object.keys(updates));
+    }
+
+    if (dto.anthropicApiKey) {
+      const aesKey = this.config.getOrThrow<string>('aesSecretKey');
+      const { encrypted, iv, tag } = encrypt(dto.anthropicApiKey, aesKey);
+      await this.supabase.db.from('user_api_keys').upsert({
+        user_id: userId,
+        anthropic_key: encrypted,
+        key_iv: iv,
+        key_tag: tag,
+        is_verified: false,
+      });
+      updatedFields.push('anthropicApiKey');
+    }
+
+    if (dto.agentConfig) {
+      const dataRoot = this.config.getOrThrow<string>('engine.dataRoot');
+      const claudeMdDir = `${dataRoot}/${userId}/groups/main`;
+      try {
+        mkdirSync(claudeMdDir, { recursive: true });
+        writeFileSync(`${claudeMdDir}/CLAUDE.md`, dto.agentConfig, 'utf8');
+        this.logger.log(`CLAUDE.md updated for user ${userId}`);
+      } catch (err) {
+        this.logger.warn(`Failed to write CLAUDE.md for user ${userId}: ${err}`);
+      }
+    }
+
+    if (updatedFields.length > 0 && instance.container_id) {
+      try {
+        await this.containerManager.stopContainer(instance.container_id);
+        const newContainerId = await this.containerManager.startContainer(userId);
+        await this.supabase.db
+          .from('instances')
+          .update({ container_id: newContainerId, status: 'running' })
+          .eq('user_id', userId);
+        this.logger.log(`Container restarted for user ${userId} after config update`);
+      } catch (err) {
+        this.logger.warn(`Failed to restart container after config update: ${err}`);
+      }
+    }
 
     await this.supabase.db.from('instance_events').insert({
       instance_id: instance.instance_id,
       user_id: userId,
       event_type: 'config_updated',
-      metadata: { fields: Object.keys(updates) },
+      metadata: { fields: updatedFields },
     });
 
     return { success: true };
@@ -163,9 +227,9 @@ export class InstancesService {
   async restart(userId: string) {
     const instance = await this.getByUserId(userId);
 
-    if (instance.ecs_task_arn) {
+    if (instance.container_id) {
       try {
-        await this.containerManager.stopContainer(instance.ecs_task_arn);
+        await this.containerManager.stopContainer(instance.container_id);
       } catch {
         this.logger.warn(`Failed to stop container during restart for user ${userId}`);
       }
@@ -173,13 +237,21 @@ export class InstancesService {
 
     await this.supabase.db
       .from('instances')
-      .update({ status: 'stopped', ecs_task_arn: null })
+      .update({ status: 'creating', container_id: null })
+      .eq('user_id', userId);
+
+    const newContainerId = await this.containerManager.startContainer(userId);
+
+    await this.supabase.db
+      .from('instances')
+      .update({ status: 'running', container_id: newContainerId })
       .eq('user_id', userId);
 
     await this.supabase.db.from('instance_events').insert({
       instance_id: instance.instance_id,
       user_id: userId,
       event_type: 'restarted',
+      metadata: { container_id: newContainerId },
     });
 
     return { success: true };
@@ -188,9 +260,9 @@ export class InstancesService {
   async delete(userId: string) {
     const instance = await this.getByUserId(userId);
 
-    if (instance.ecs_task_arn) {
+    if (instance.container_id) {
       try {
-        await this.containerManager.stopContainer(instance.ecs_task_arn);
+        await this.containerManager.stopContainer(instance.container_id);
       } catch {
         this.logger.warn(`Failed to stop container during deletion for user ${userId}`);
       }
@@ -198,15 +270,15 @@ export class InstancesService {
 
     await this.supabase.db.from('instances').delete().eq('user_id', userId);
 
-    this.logger.log(`Instance deleted for user ${userId}. EFS data at /users/${userId} retained for 30 days.`);
+    this.logger.log(`Instance deleted for user ${userId}. Data at /data/nanoclaw-instances/${userId} retained.`);
     return { success: true };
   }
 
-  async updateTaskArn(userId: string, taskArn: string | null) {
-    const status = taskArn ? 'running' : 'stopped';
+  async updateContainerId(userId: string, containerId: string | null) {
+    const status = containerId ? 'running' : 'stopped';
     await this.supabase.db
       .from('instances')
-      .update({ ecs_task_arn: taskArn, status, last_activity: new Date().toISOString() })
+      .update({ container_id: containerId, status, last_activity: new Date().toISOString() })
       .eq('user_id', userId);
   }
 

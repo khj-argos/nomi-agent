@@ -4,18 +4,8 @@ const configSchema = z.object({
   PORT: z.string().default('4001'),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
 
-  AWS_REGION: z.string().default('ap-northeast-2'),
-  AWS_ACCOUNT_ID: z.string(),
-  ECS_CLUSTER_ARN: z.string(),
-  ECS_TASK_EXECUTION_ROLE_ARN: z.string(),
-  ECR_ENGINE_IMAGE_URI: z.string(),
-
-  VPC_ID: z.string(),
-  SUBNET_A: z.string(),
-  SUBNET_C: z.string(),
-  SECURITY_GROUP_CONTAINER: z.string(),
-
-  EFS_FILE_SYSTEM_ID: z.string(),
+  ENGINE_IMAGE_URI: z.string().default('nanoclaw-agent:latest'),
+  DATA_ROOT: z.string().default('/data/nanoclaw-instances'),
 
   SUPABASE_URL: z.string().url(),
   SUPABASE_SERVICE_ROLE_KEY: z.string(),
@@ -33,6 +23,7 @@ const configSchema = z.object({
   CONTAINER_STARTUP_TIMEOUT_MS: z.string().default('30000'),
 
   WEBHOOK_BASE_URL: z.string().url().default('http://localhost:4001'),
+  ALLOWED_ORIGINS: z.string().optional(),
 });
 
 export type AppConfig = z.infer<typeof configSchema>;
@@ -50,23 +41,9 @@ export default () => {
   return {
     port: parseInt(validated.PORT, 10),
     nodeEnv: validated.NODE_ENV,
-    aws: {
-      region: validated.AWS_REGION,
-      accountId: validated.AWS_ACCOUNT_ID,
-      ecs: {
-        clusterArn: validated.ECS_CLUSTER_ARN,
-        taskExecutionRoleArn: validated.ECS_TASK_EXECUTION_ROLE_ARN,
-        imageUri: validated.ECR_ENGINE_IMAGE_URI,
-      },
-      vpc: {
-        id: validated.VPC_ID,
-        subnetA: validated.SUBNET_A,
-        subnetC: validated.SUBNET_C,
-        containerSg: validated.SECURITY_GROUP_CONTAINER,
-      },
-      efs: {
-        fileSystemId: validated.EFS_FILE_SYSTEM_ID,
-      },
+    engine: {
+      imageUri: validated.ENGINE_IMAGE_URI,
+      dataRoot: validated.DATA_ROOT,
     },
     supabase: {
       url: validated.SUPABASE_URL,

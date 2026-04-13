@@ -100,51 +100,16 @@ External Services
 
 ## Getting Started
 
-### Prerequisites
+### Local Development
 
-- Node.js ≥ 20
-- Docker & Docker Compose
-- A [Supabase](https://supabase.com) project
-- A [LemonSqueezy](https://lemonsqueezy.com) account (for billing)
-
-### 1. Clone the repo
+**Prerequisites:** Node.js ≥ 20, Docker
 
 ```bash
 git clone --recurse-submodules https://github.com/khj-argos/nomi-agent.git
 cd nomi-agent
 npm install
-```
-
-> **Note:** The `--recurse-submodules` flag is required to pull the `packages/engine` (nanoclaw) submodule.
-
-### 2. Set up environment variables
-
-Copy the example env files and fill in your credentials:
-
-```bash
-cp .env.example .env.local
-cp packages/orchestrator/.env.example packages/orchestrator/.env
-```
-
-See [Environment Variables](#environment-variables) below for the full reference.
-
-### 3. Set up the database
-
-Apply the Supabase schema using the Supabase CLI:
-
-```bash
+cp .env.example .env   # fill in credentials
 supabase db push
-```
-
-Or manually run the SQL files in the Supabase dashboard → SQL Editor:
-
-```
-supabase/migrations/001_initial_schema.sql
-```
-
-### 4. Run in development
-
-```bash
 npm run dev
 ```
 
@@ -152,37 +117,22 @@ This starts:
 - **Platform** at `http://localhost:3000`
 - **Orchestrator** at `http://localhost:4001`
 
----
+### Production (EC2 + Docker Compose)
 
-## Environment Variables
+자세한 내용은 **[docs/deployment.md](docs/deployment.md)** 를 참고하세요.
 
-### Platform (`packages/platform/.env.local`)
+```bash
+# 데이터 디렉토리
+sudo mkdir -p /data/nanoclaw-instances
 
-| Variable | Description |
-|---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | Your Supabase project URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anonymous key |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key (server-only) |
-| `ENCRYPTION_KEY` | 32-byte base64 key for AES-256-GCM (`openssl rand -base64 32`) |
-| `ORCHESTRATOR_URL` | Internal orchestrator URL (default: `http://localhost:4001`) |
-| `ORCHESTRATOR_SECRET` | Shared secret for Control Plane → Orchestrator auth |
-| `LEMON_SQUEEZY_API_KEY` | LemonSqueezy API key |
-| `LEMON_SQUEEZY_STORE_ID` | LemonSqueezy store ID |
-| `LEMON_SQUEEZY_WEBHOOK_SECRET` | Webhook signing secret |
-| `LEMON_SQUEEZY_MONTHLY_VARIANT_ID` | Monthly plan variant ID |
-| `NEXT_PUBLIC_APP_URL` | Public app URL (e.g. `https://yourdomain.com`) |
+# agent 이미지 빌드
+docker build -t nanoclaw-agent:latest -f packages/engine/container/Dockerfile packages/engine/container/
 
-### Orchestrator (`packages/orchestrator/.env`)
-
-| Variable | Description |
-|---|---|
-| `PORT` | Server port (default: `4001`) |
-| `SUPABASE_URL` | Supabase project URL |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key |
-| `SUPABASE_JWT_SECRET` | JWT secret for token verification |
-| `AES_SECRET_KEY` | 32-byte hex key for decrypting stored API keys |
-| `WEBHOOK_BASE_URL` | Base URL for Telegram webhook callbacks |
-| `CONTAINER_IDLE_TIMEOUT_MS` | Auto-stop idle containers (default: `3600000`) |
+# platform + orchestrator 빌드 및 실행
+cp .env.example .env  # 값 채우기
+docker compose build
+docker compose up -d
+```
 
 ---
 
@@ -201,20 +151,7 @@ subscriptions       — LemonSqueezy subscription state
 
 ## Deployment
 
-The platform is designed for VPS or cloud deployment using Docker Compose.
-
-```bash
-# Build all packages
-npm run build
-
-# Start services in production
-docker compose up -d
-
-# View logs
-docker compose logs -f
-```
-
-A `Caddyfile` is included for automatic HTTPS via Caddy reverse proxy.
+→ **[docs/deployment.md](docs/deployment.md)**
 
 ---
 
