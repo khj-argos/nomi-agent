@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { AuthGuard } from '../common/guards/auth.guard';
 import { CurrentUser, AuthUser } from '../common/decorators/user.decorator';
+import { BudgetService } from '../llm-proxy/budget/budget.service';
 import { InstancesService } from './instances.service';
 import { CreateInstanceDto } from './dto/create-instance.dto';
 import { UpdateConfigDto } from './dto/update-config.dto';
@@ -16,7 +17,10 @@ import { UpdateConfigDto } from './dto/update-config.dto';
 @Controller('instances')
 @UseGuards(AuthGuard)
 export class InstancesController {
-  constructor(private readonly instancesService: InstancesService) {}
+  constructor(
+    private readonly instancesService: InstancesService,
+    private readonly budget: BudgetService,
+  ) {}
 
   @Post()
   create(@CurrentUser() user: AuthUser, @Body() dto: CreateInstanceDto) {
@@ -36,6 +40,11 @@ export class InstancesController {
   @Put('me/config')
   updateConfig(@CurrentUser() user: AuthUser, @Body() dto: UpdateConfigDto) {
     return this.instancesService.updateConfig(user.id, dto);
+  }
+
+  @Get('me/usage')
+  usage(@CurrentUser() user: AuthUser) {
+    return this.budget.snapshot(user.id);
   }
 
   @Post('me/restart')

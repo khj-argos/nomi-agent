@@ -142,7 +142,7 @@ export class InstancesService {
   async getConfig(userId: string) {
     const { data, error } = await this.supabase.db
       .from('active_user_instances')
-      .select('assistant_name, agent_config')
+      .select('assistant_name, agent_config, active_llm')
       .eq('user_id', userId)
       .single();
 
@@ -152,11 +152,12 @@ export class InstancesService {
       .from('user_api_keys')
       .select('is_verified')
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
 
     return {
       assistantName: data.assistant_name,
       agentConfig: data.agent_config,
+      activeLlm: (data.active_llm as 'gemma_hosted' | 'anthropic_byok') ?? 'gemma_hosted',
       hasApiKey: !!keyData,
     };
   }
@@ -194,6 +195,38 @@ export class InstancesService {
         .update({ active_llm: 'anthropic_byok' })
         .eq('user_id', userId);
       updatedFields.push('anthropicApiKey');
+    }
+
+    if (dto.removeAnthropicKey) {
+      await this.supabase.db
+        .from('user_api_keys')
+        .delete()
+        .eq('user_id', userId);
+      await this.supabase.db
+        .from('instances')
+        .update({ active_llm: 'gemma_hosted' })
+        .eq('user_id', userId);
+      updatedFields.push('anthropicApiKey');
+    }
+
+    if (dto.activeLlm && !dto.anthropicApiKey && !dto.removeAnthropicKey) {
+      if (dto.activeLlm === 'anthropic_byok') {
+        const { data: keyData } = await this.supabase.db
+          .from('user_api_keys')
+          .select('anthropic_key')
+          .eq('user_id', userId)
+          .maybeSingle();
+        if (!keyData?.anthropic_key) {
+          throw new BadRequestException(
+            'Cannot switch to anthropic_byok without a registered API key',
+          );
+        }
+      }
+      await this.supabase.db
+        .from('instances')
+        .update({ active_llm: dto.activeLlm })
+        .eq('user_id', userId);
+      updatedFields.push('activeLlm');
     }
 
     if (dto.agentConfig) {

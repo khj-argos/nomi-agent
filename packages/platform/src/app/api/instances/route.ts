@@ -1,5 +1,13 @@
 import { createServerSideClient } from "@/lib/supabase-server";
+import { orchestrator } from "@/lib/orchestrator";
 import { NextResponse } from "next/server";
+
+interface UsageSnapshot {
+  used: number;
+  limit: number;
+  remaining: number;
+  withinBudget: boolean;
+}
 
 export async function GET() {
   try {
@@ -11,7 +19,7 @@ export async function GET() {
 
     const { data: instance } = await supabase
       .from("active_user_instances")
-      .select("instance_id, status, assistant_name, last_activity, container_id")
+      .select("instance_id, status, assistant_name, last_activity, container_id, active_llm")
       .eq("user_id", user.id)
       .single();
 
@@ -29,12 +37,18 @@ export async function GET() {
       ? formatRelativeTime(new Date(instance.last_activity))
       : "기록 없음";
 
+    const usage = await orchestrator
+      .get<UsageSnapshot>("/instances/me/usage")
+      .catch(() => null);
+
     return NextResponse.json({
       instance: {
         id: instance.instance_id,
         status: instance.status as "running" | "stopped" | "starting",
         lastActive,
         agentName: instance.assistant_name,
+        activeLlm: (instance.active_llm as "gemma_hosted" | "anthropic_byok" | null) ?? "gemma_hosted",
+        usage,
         channels: {
           telegram: channels?.some((c) => c.type === "telegram") ?? false,
           slack: channels?.some((c) => c.type === "slack") ?? false,

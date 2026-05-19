@@ -19,6 +19,6 @@ import { UsageRecorderService } from './usage/usage-recorder.service';
     UsageRecorderService,
     BudgetService,
   ],
-  exports: [InternalTokenService, InternalTokenGuard],
+  exports: [InternalTokenService, InternalTokenGuard, BudgetService],
 })
 export class LLMProxyModule {}

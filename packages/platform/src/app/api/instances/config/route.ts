@@ -2,11 +2,15 @@ import { createServerSideClient } from "@/lib/supabase-server";
 import { orchestrator } from "@/lib/orchestrator";
 import { NextResponse } from "next/server";
 
+export type ActiveLlm = "gemma_hosted" | "anthropic_byok";
+
 interface ConfigPayload {
   assistantName?: string;
   agentConfig?: string;
   anthropicApiKey?: string;
   hasApiKey?: boolean;
+  activeLlm?: ActiveLlm;
+  removeAnthropicKey?: boolean;
 }
 
 export async function GET() {
