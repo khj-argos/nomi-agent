@@ -224,14 +224,14 @@ function FeaturesSection() {
     },
     {
       icon: <Lock className="w-6 h-6 text-[#5E6AD2]" />,
-      title: "내 API 키, 내 데이터",
-      desc: "본인의 Anthropic API 키를 직접 입력. 우리는 인프라만 제공해요. LLM 비용은 내가 컨트롤.",
+      title: "기본은 무료, 원하면 BYOK",
+      desc: "Gemma 4가 무료로 동작해요. Claude API 키를 등록하면 즉시 전환 — 자가호스팅 모델과 Claude 사이를 클릭 한 번으로.",
       className: "md:col-span-2",
     },
     {
       icon: <Zap className="w-6 h-6 text-[#5E6AD2]" />,
       title: "즉시 시작, 5분 셋업",
-      desc: "가입 → API 키 입력 → Telegram 연결. 복잡한 설정 없이 5분 안에 나만의 AI가 생겨요.",
+      desc: "가입 → 에이전트 설정 → Telegram 연결. 키 등록 없이도 바로 시작할 수 있어요.",
       className: "md:col-span-2",
     },
     {
@@ -274,8 +274,8 @@ function HowItWorksSection() {
   const steps = [
     {
       num: "01",
-      title: "가입 & API 키 입력",
-      desc: "이메일로 30초 가입. Anthropic API 키를 입력하거나 우리 LLM 플랜을 선택하세요.",
+      title: "가입하고 바로 시작",
+      desc: "이메일로 30초 가입. 기본은 Gemma 4 (무료) — Claude를 쓰고 싶다면 나중에 API 키만 등록하세요.",
     },
     {
       num: "02",

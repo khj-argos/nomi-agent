@@ -33,7 +33,7 @@ export default function OnboardingPage() {
   const [step, setStep] = useState(1);
   const [data, setData] = useState<OnboardingData>({
     anthropicApiKey: "",
-    skipApiKey: false,
+    skipApiKey: true,
     agentTemplate: "developer",
     customPrompt: "",
     assistantName: "Andy",
@@ -88,7 +88,7 @@ export default function OnboardingPage() {
 }
 
 function Step1ApiKey({ data, updateData, onNext }: StepProps) {
-  const [mode, setMode] = useState<"byok" | "later">(data.skipApiKey ? "later" : "byok");
+  const [mode, setMode] = useState<"hosted" | "byok">(data.skipApiKey ? "hosted" : "byok");
   const [error, setError] = useState("");
 
   const handleNext = () => {
@@ -112,10 +112,29 @@ function Step1ApiKey({ data, updateData, onNext }: StepProps) {
           <Key className="w-6 h-6 text-blue-500" />
         </div>
         <h2 className="text-2xl font-bold text-zinc-900">AI 엔진을 선택하세요</h2>
-        <p className="text-zinc-500 text-sm">Nomi는 사용자의 API 키를 안전하게 보관합니다.</p>
+        <p className="text-zinc-500 text-sm">기본은 무료 Gemma 4. Claude를 쓰고 싶다면 API 키를 등록하세요.</p>
       </div>
 
       <div className="space-y-3">
+        <label
+          className={`block p-4 rounded-2xl border-2 cursor-pointer transition-all ${
+            mode === "hosted" ? "border-blue-500 bg-blue-50/50" : "border-zinc-100 hover:border-zinc-200"
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            <input
+              type="radio"
+              checked={mode === "hosted"}
+              onChange={() => setMode("hosted")}
+              className="w-4 h-4 text-blue-500 focus:ring-blue-500"
+            />
+            <div>
+              <div className="font-semibold text-zinc-900">Gemma 4 (Hosted) — 무료</div>
+              <div className="text-xs text-zinc-500">일일 토큰 한도 안에서 바로 사용할 수 있어요.</div>
+            </div>
+          </div>
+        </label>
+
         <label
           className={`block p-4 rounded-2xl border-2 cursor-pointer transition-all ${
             mode === "byok" ? "border-blue-500 bg-blue-50/50" : "border-zinc-100 hover:border-zinc-200"
@@ -129,17 +148,18 @@ function Step1ApiKey({ data, updateData, onNext }: StepProps) {
               className="w-4 h-4 text-blue-500 focus:ring-blue-500"
             />
             <div>
-              <div className="font-semibold text-zinc-900">내 Anthropic API 키 사용 (BYOK)</div>
-              <div className="text-xs text-zinc-500">비용은 내가 직접 제어해요</div>
+              <div className="font-semibold text-zinc-900">Claude (Your API Key)</div>
+              <div className="text-xs text-zinc-500">Anthropic 사용량은 직접 청구돼요. 언제든 설정에서 바꿀 수 있어요.</div>
             </div>
           </div>
           {mode === "byok" && (
             <div className="pl-7 space-y-3 animate-in fade-in duration-300">
               <input
-                type="text"
+                type="password"
                 placeholder="sk-ant-..."
                 value={data.anthropicApiKey}
                 onChange={(e) => { updateData({ anthropicApiKey: e.target.value }); setError(""); }}
+                autoComplete="off"
                 className="w-full px-4 py-2.5 bg-zinc-50 border border-zinc-300 rounded-xl text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
               />
               {error && <p className="text-xs text-red-500">{error}</p>}
@@ -148,20 +168,6 @@ function Step1ApiKey({ data, updateData, onNext }: StepProps) {
               </a>
             </div>
           )}
-        </label>
-
-        <label
-          className={`block p-4 rounded-2xl border-2 cursor-pointer transition-all ${
-            mode === "later" ? "border-blue-500 bg-blue-50/50" : "border-zinc-100 hover:border-zinc-200"
-          }`}
-        >
-          <div className="flex items-center gap-3">
-            <input type="radio" checked={mode === "later"} onChange={() => setMode("later")} className="w-4 h-4 text-blue-500 focus:ring-blue-500" />
-            <div>
-              <div className="font-semibold text-zinc-900">나중에 설정하기</div>
-              <div className="text-xs text-zinc-500">일단 시작하고 나중에 추가할 수 있어요</div>
-            </div>
-          </div>
         </label>
       </div>
 

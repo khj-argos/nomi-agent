@@ -9,11 +9,11 @@ Nomi Agent is a multi-tenant SaaS platform that manages per-user [nanoclaw](http
 ## Features
 
 - **Instant Deployment** — Spin up a personal AI agent with a few clicks
-- **Bring Your Own Key** — Connect your Anthropic API key, or use our hosted LLM service
+- **Dual LLM Backend** — Free hosted Gemma 4 (default) with one-click switch to Claude when users register an Anthropic API key (BYOK)
 - **Messaging Channel Integration** — Connect agents to Telegram (Slack & Discord coming soon)
-- **Web Dashboard** — Monitor instance status, manage channels, and configure agent behavior
+- **Web Dashboard** — Monitor instance status, manage channels, switch LLM provider, and watch daily token usage
 - **Agent Configuration** — Edit your agent's `CLAUDE.md` prompt via Monaco editor or choose from templates
-- **Secure by Default** — API keys encrypted at rest with AES-256-GCM; per-user data isolation
+- **Secure by Default** — User API keys encrypted at rest with AES-256-GCM; per-user container isolation; agent containers never see raw provider keys
 - **Subscription Billing** — LemonSqueezy-powered subscription management
 
 ---
@@ -168,7 +168,7 @@ Users are guided through a 4-step setup:
 
 ## Security
 
-- **API Key Encryption:** User Anthropic API keys are encrypted with AES-256-GCM before storage. The plaintext key is only available inside the container at startup — never exposed via the API.
+- **API Key Encryption:** User Anthropic API keys are encrypted with AES-256-GCM before storage. Plaintext is only decrypted inside the orchestrator's LLM proxy at request time — agent containers carry a short-lived internal JWT instead, never the user's actual provider key.
 - **Container Isolation:** Each user's nanoclaw instance runs in a separate Docker container with isolated filesystem and SQLite database.
 - **Auth Guards:** All API routes validate Supabase JWTs. Orchestrator endpoints require an internal `ORCHESTRATOR_SECRET` header.
 - **Webhook Verification:** LemonSqueezy webhooks are verified with HMAC-SHA256 signatures.

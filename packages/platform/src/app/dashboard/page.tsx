@@ -1,16 +1,26 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Bot, CheckCircle, MessageCircle, Plus, Settings, Wifi, WifiOff, ArrowRight } from "lucide-react";
+import { Bot, CheckCircle, Cpu, KeyRound, MessageCircle, Plus, Settings, Sparkles, Wifi, WifiOff, ArrowRight } from "lucide-react";
 import Link from "next/link";
 
 type InstanceStatus = "running" | "stopped" | "starting";
+type ActiveLlm = "gemma_hosted" | "anthropic_byok";
+
+interface UsageSnapshot {
+  used: number;
+  limit: number;
+  remaining: number;
+  withinBudget: boolean;
+}
 
 interface Instance {
   id: string;
   status: InstanceStatus;
   lastActive: string;
   agentName: string;
+  activeLlm: ActiveLlm;
+  usage: UsageSnapshot | null;
   channels: {
     telegram: boolean;
     slack: boolean;
@@ -147,6 +157,8 @@ export default function DashboardPage() {
               </span>
             </div>
 
+            <LlmBadge activeLlm={instance.activeLlm} />
+
             <div className="flex gap-3 pt-4 border-t border-zinc-100">
               <button
                 onClick={handleRestart}
@@ -207,7 +219,17 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl p-6 border border-zinc-100 shadow-sm md:col-span-2">
+        <div className="bg-white rounded-2xl p-6 border border-zinc-100 shadow-sm">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
+              <Cpu className="w-5 h-5 text-blue-500" />
+            </div>
+            <h2 className="text-lg font-semibold text-zinc-900">사용량</h2>
+          </div>
+          <UsageMeter activeLlm={instance.activeLlm} usage={instance.usage} />
+        </div>
+
+        <div className="bg-white rounded-2xl p-6 border border-zinc-100 shadow-sm">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
@@ -223,20 +245,106 @@ export default function DashboardPage() {
             </Link>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="space-y-4">
             <div>
               <p className="text-sm text-zinc-500 mb-1">이름</p>
               <p className="font-medium text-zinc-900 text-lg">{instance?.agentName || "이름 없음"}</p>
             </div>
             <div>
               <p className="text-sm text-zinc-500 mb-1">인스턴스 ID</p>
-              <p className="font-mono text-sm text-zinc-700 bg-zinc-100 px-3 py-1.5 rounded-lg inline-block">
+              <p className="font-mono text-xs text-zinc-700 bg-zinc-100 px-3 py-1.5 rounded-lg inline-block">
                 {instance?.id || "발급 대기 중"}
               </p>
             </div>
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function LlmBadge({ activeLlm }: { activeLlm: ActiveLlm }) {
+  const isGemma = activeLlm === "gemma_hosted";
+  const Icon = isGemma ? Sparkles : KeyRound;
+  return (
+    <div className="flex items-center justify-between p-3 rounded-xl border border-zinc-100 bg-zinc-50/60">
+      <div className="flex items-center gap-2.5">
+        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+          isGemma ? "bg-blue-500/10 text-blue-600" : "bg-purple-500/10 text-purple-600"
+        }`}>
+          <Icon className="w-4 h-4" />
+        </div>
+        <div>
+          <div className="text-xs uppercase tracking-wide text-zinc-500">현재 LLM</div>
+          <div className="font-semibold text-zinc-900 text-sm">
+            {isGemma ? "Gemma 4 (Hosted)" : "Claude (Your Key)"}
+          </div>
+        </div>
+      </div>
+      <Link
+        href="/dashboard/settings"
+        className="text-xs font-medium text-blue-600 hover:text-blue-700"
+      >
+        변경
+      </Link>
+    </div>
+  );
+}
+
+function UsageMeter({
+  activeLlm,
+  usage,
+}: {
+  activeLlm: ActiveLlm;
+  usage: UsageSnapshot | null;
+}) {
+  if (activeLlm !== "gemma_hosted") {
+    return (
+      <div className="space-y-2">
+        <p className="text-sm text-zinc-600">
+          Claude 백엔드 사용 중 — Anthropic이 직접 청구합니다.
+        </p>
+        <p className="text-xs text-zinc-500">
+          Anthropic 콘솔에서 정확한 사용량과 비용을 확인하세요.
+        </p>
+      </div>
+    );
+  }
+
+  if (!usage) {
+    return <p className="text-sm text-zinc-500">사용량 정보를 불러올 수 없습니다.</p>;
+  }
+
+  const percent = usage.limit > 0 ? Math.min(100, (usage.used / usage.limit) * 100) : 0;
+  const barColor = !usage.withinBudget
+    ? "bg-red-500"
+    : percent > 80
+    ? "bg-amber-500"
+    : "bg-blue-500";
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-baseline justify-between">
+        <span className="text-sm text-zinc-600">오늘 사용한 토큰</span>
+        <span className="text-sm font-medium text-zinc-900">
+          {usage.used.toLocaleString()} / {usage.limit.toLocaleString()}
+        </span>
+      </div>
+      <div className="h-2 w-full rounded-full bg-zinc-100 overflow-hidden">
+        <div
+          className={`h-full ${barColor} transition-all duration-500`}
+          style={{ width: `${percent}%` }}
+        />
+      </div>
+      {!usage.withinBudget ? (
+        <p className="text-xs text-red-600">
+          오늘 무료 한도를 모두 사용했어요. 자정에 초기화되거나, Claude API 키를 등록해 계속 사용할 수 있어요.
+        </p>
+      ) : (
+        <p className="text-xs text-zinc-500">
+          남은 토큰: {usage.remaining.toLocaleString()} · 매일 자정(UTC) 초기화
+        </p>
+      )}
     </div>
   );
 }
