@@ -1,0 +1,23 @@
+{
+  "name": "@nanoclaw/ollama-poc",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Quality gate for Gemma 4 on Ollama via Anthropic-compatible endpoint.",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "run-poc": "tsx src/run-poc.ts",
+    "dry-run": "DRY_RUN=1 tsx src/run-poc.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.96.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.8.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
