@@ -110,6 +110,10 @@ export class InstancesService {
           key_tag: tag,
           is_verified: false,
         });
+        await this.supabase.db
+          .from('instances')
+          .update({ active_llm: 'anthropic_byok' })
+          .eq('id', instance.id);
       }
 
       await this.createOnboardingSequences(userId, instance.id);
@@ -185,6 +189,10 @@ export class InstancesService {
         key_tag: tag,
         is_verified: false,
       });
+      await this.supabase.db
+        .from('instances')
+        .update({ active_llm: 'anthropic_byok' })
+        .eq('user_id', userId);
       updatedFields.push('anthropicApiKey');
     }
 
@@ -200,7 +208,11 @@ export class InstancesService {
       }
     }
 
-    if (updatedFields.length > 0 && instance.container_id) {
+    const restartNeeded = instance.container_id && (
+      updatedFields.includes('assistant_name') ||
+      updatedFields.includes('agent_config')
+    );
+    if (restartNeeded) {
       try {
         await this.containerManager.stopContainer(instance.container_id);
         const newContainerId = await this.containerManager.startContainer(userId);

@@ -31,9 +31,12 @@ const configSchema = z.object({
 
   LLM_PROXY_INTERNAL_SECRET: z.string().min(32),
   LLM_PROXY_TOKEN_TTL_SECONDS: z.string().default('86400'),
+  LLM_PROXY_PUBLIC_URL: z.string().url().default('http://orchestrator:4001'),
 
   FREE_TIER_DAILY_TOKEN_LIMIT: z.string().default('100000'),
   LLM_REQUEST_TIMEOUT_MS: z.string().default('600000'),
+
+  AGENT_DOCKER_NETWORK: z.string().default('nanoclaw-tamagotchi-service_nanoclaw'),
 });
 
 export type AppConfig = z.infer<typeof configSchema>;
@@ -82,6 +85,10 @@ export default () => {
       tokenTtlSeconds: parseInt(validated.LLM_PROXY_TOKEN_TTL_SECONDS, 10),
       freeTierDailyTokenLimit: parseInt(validated.FREE_TIER_DAILY_TOKEN_LIMIT, 10),
       requestTimeoutMs: parseInt(validated.LLM_REQUEST_TIMEOUT_MS, 10),
+      publicUrl: validated.LLM_PROXY_PUBLIC_URL,
+    },
+    agent: {
+      dockerNetwork: validated.AGENT_DOCKER_NETWORK,
     },
   };
 };

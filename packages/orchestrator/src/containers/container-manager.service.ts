@@ -1,13 +1,14 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Dockerode from 'dockerode';
 import { SupabaseService } from '../common/supabase/supabase.service';
-import { decrypt } from '../common/crypto/encrypt';
+import { InternalTokenService } from '../llm-proxy/internal-token/internal-token.service';
 
 export type ContainerStatus = 'running' | 'stopped' | 'starting' | 'stopping' | 'unknown';
 
 const MANAGED_LABEL = 'nanoclaw.managed';
 const USER_ID_LABEL = 'nanoclaw.user_id';
+const INSTANCE_ID_LABEL = 'nanoclaw.instance_id';
 
 @Injectable()
 export class ContainerManagerService {
@@ -17,6 +18,7 @@ export class ContainerManagerService {
   constructor(
     private readonly config: ConfigService,
     private readonly supabase: SupabaseService,
+    private readonly internalTokens: InternalTokenService,
   ) {
     this.docker = new Dockerode({ socketPath: '/var/run/docker.sock' });
   }
@@ -25,32 +27,29 @@ export class ContainerManagerService {
     return `nanoclaw-user-${userId.replace(/-/g, '')}`;
   }
 
-  private async getAnthropicApiKey(userId: string): Promise<string | null> {
-    const { data } = await this.supabase.db
-      .from('user_api_keys')
-      .select('anthropic_key, key_iv, key_tag')
+  private async resolveInstance(userId: string): Promise<{ id: string }> {
+    const { data, error } = await this.supabase.db
+      .from('instances')
+      .select('id')
       .eq('user_id', userId)
       .single();
 
-    if (!data?.anthropic_key) return null;
-
-    try {
-      const aesKey = this.config.getOrThrow<string>('aesSecretKey');
-      return decrypt(
-        { encrypted: data.anthropic_key, iv: data.key_iv, tag: data.key_tag },
-        aesKey,
+    if (error || !data) {
+      throw new NotFoundException(
+        `No instance found for user ${userId} — cannot start container without an instances row`,
       );
-    } catch (err) {
-      this.logger.error(`Failed to decrypt API key for user ${userId}: ${err}`);
-      return null;
     }
+    return { id: data.id };
   }
 
   async startContainer(userId: string): Promise<string> {
     this.logger.log(`Starting container for user ${userId}`);
 
+    const instance = await this.resolveInstance(userId);
     const imageUri = this.config.getOrThrow<string>('engine.imageUri');
     const dataRoot = this.config.getOrThrow<string>('engine.dataRoot');
+    const proxyUrl = this.config.getOrThrow<string>('llmProxy.publicUrl');
+    const networkName = this.config.getOrThrow<string>('agent.dockerNetwork');
     const name = this.containerName(userId);
     const hostDataPath = `${dataRoot}/${userId}`;
 
@@ -63,14 +62,12 @@ export class ContainerManagerService {
       }
     } catch (_) {}
 
-    const anthropicApiKey = await this.getAnthropicApiKey(userId);
-    if (!anthropicApiKey) {
-      this.logger.warn(`No Anthropic API key found for user ${userId}`);
-    }
+    const internalToken = await this.internalTokens.issue(userId, instance.id);
 
     const env: string[] = [
       'TZ=Asia/Seoul',
-      ...(anthropicApiKey ? [`ANTHROPIC_API_KEY=${anthropicApiKey}`] : []),
+      `ANTHROPIC_BASE_URL=${trimTrailingSlash(proxyUrl)}/llm/v1`,
+      `ANTHROPIC_AUTH_TOKEN=${internalToken}`,
     ];
 
     const container = await this.docker.createContainer({
@@ -80,10 +77,12 @@ export class ContainerManagerService {
       Labels: {
         [MANAGED_LABEL]: 'true',
         [USER_ID_LABEL]: userId,
+        [INSTANCE_ID_LABEL]: instance.id,
       },
       HostConfig: {
         Binds: [`${hostDataPath}:/workspace/data`],
         RestartPolicy: { Name: 'unless-stopped', MaximumRetryCount: 0 },
+        NetworkMode: networkName,
       },
     });
 
@@ -94,12 +93,25 @@ export class ContainerManagerService {
 
   async stopContainer(containerId: string): Promise<void> {
     this.logger.log(`Stopping container: ${containerId}`);
+    let instanceId: string | undefined;
     try {
       const container = this.docker.getContainer(containerId);
+      const info = await container.inspect();
+      instanceId = info.Config?.Labels?.[INSTANCE_ID_LABEL];
       await container.stop({ t: 10 });
       await container.remove();
     } catch (err) {
       this.logger.warn(`Error stopping container ${containerId}: ${err}`);
+    }
+
+    if (instanceId) {
+      try {
+        await this.internalTokens.revoke(instanceId);
+      } catch (err) {
+        this.logger.warn(
+          `Failed to revoke internal token for instance ${instanceId}: ${(err as Error).message}`,
+        );
+      }
     }
   }
 
@@ -114,7 +126,6 @@ export class ContainerManagerService {
       if (Dead || OOMKilled) return 'stopped';
       return 'stopped';
     } catch {
-      // 컨테이너를 찾을 수 없음 = 중지됨
       return 'stopped';
     }
   }
@@ -151,4 +162,8 @@ export class ContainerManagerService {
   private sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
+}
+
+function trimTrailingSlash(url: string): string {
+  return url.endsWith('/') ? url.slice(0, -1) : url;
 }
