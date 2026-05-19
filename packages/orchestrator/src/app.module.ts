@@ -10,6 +10,7 @@ import { SchedulerModule } from './scheduler/scheduler.module';
 import { BillingModule } from './billing/billing.module';
 import { MonitorModule } from './monitor/monitor.module';
 import { ChannelsModule } from './channels/channels.module';
+import { LLMProxyModule } from './llm-proxy/llm-proxy.module';
 
 @Controller()
 class HealthController {
@@ -31,6 +32,7 @@ class HealthController {
     BillingModule,
     MonitorModule,
     ChannelsModule,
+    LLMProxyModule,
   ],
   controllers: [HealthController],
 })
