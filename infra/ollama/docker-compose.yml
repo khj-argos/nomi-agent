@@ -1,0 +1,50 @@
+services:
+  ollama:
+    image: ollama/ollama:${OLLAMA_VERSION:-latest}
+    container_name: nanoclaw-ollama
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${OLLAMA_HOST_PORT:-11434}:11434"
+    volumes:
+      - ollama_models:/root/.ollama
+      - ./Modelfile.gemma4-agentic:/etc/ollama/Modelfile.gemma4-agentic:ro
+      - ./entrypoint.sh:/etc/ollama/entrypoint.sh:ro
+    environment:
+      OLLAMA_HOST: 0.0.0.0:11434
+      OLLAMA_FLASH_ATTENTION: "1"
+      OLLAMA_KV_CACHE_TYPE: q8_0
+      OLLAMA_KEEP_ALIVE: "-1"
+      OLLAMA_NUM_PARALLEL: ${OLLAMA_NUM_PARALLEL:-4}
+      OLLAMA_MAX_LOADED_MODELS: "1"
+      GEMMA_MODEL_TAG: ${GEMMA_MODEL_TAG:-gemma4:26b}
+      GEMMA_AGENTIC_NAME: ${GEMMA_AGENTIC_NAME:-gemma4-agentic}
+    entrypoint: ["/bin/sh", "/etc/ollama/entrypoint.sh"]
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list | grep -q ${GEMMA_AGENTIC_NAME:-gemma4-agentic} || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 600s
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    networks:
+      - nanoclaw
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  ollama_models:
+    name: nanoclaw_ollama_models
+
+networks:
+  nanoclaw:
+    external: true
+    name: nanoclaw_nanoclaw
