@@ -75,9 +75,7 @@ export class LlmProxyController {
           HttpStatus.TOO_MANY_REQUESTS,
         );
       }
-      if (!body.model || body.model.length === 0) {
-        body.model = decision.defaultModel;
-      }
+      body.model = decision.defaultModel;
     }
 
     const isStreaming = body.stream === true;
