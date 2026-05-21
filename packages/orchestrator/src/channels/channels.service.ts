@@ -26,6 +26,22 @@ export class ChannelsService {
       throw new BadRequestException('Instance not found. Create an instance first.');
     }
 
+    const web = new WebClient(dto.botToken);
+    let teamId = dto.teamId ?? '';
+    let teamName = dto.teamName ?? '';
+
+    try {
+      const authResult = await web.auth.test();
+      teamId = (authResult.team_id as string) ?? teamId;
+      teamName = (authResult.team as string) ?? teamName;
+    } catch (err) {
+      this.logger.warn(`Slack auth.test failed: ${err}`);
+      if (!teamId) throw new BadRequestException('Invalid Slack Bot Token');
+    }
+
+    const aesKey = this.config.getOrThrow<string>('aesSecretKey');
+    const { encrypted, iv, tag } = encrypt(dto.botToken, aesKey);
+
     const { data: existing } = await this.supabase.db
       .from('channels')
       .select('id')
@@ -37,8 +53,9 @@ export class ChannelsService {
       await this.supabase.db
         .from('channels')
         .update({
-          identifier: dto.teamId,
-          display_name: dto.teamName,
+          identifier: teamId,
+          display_name: teamName,
+          metadata_encrypted: JSON.stringify({ encrypted, iv, tag }),
           is_active: true,
           connected_at: new Date().toISOString(),
         })
@@ -51,8 +68,9 @@ export class ChannelsService {
       user_id: userId,
       instance_id: instance.id,
       type: 'slack',
-      identifier: dto.teamId,
-      display_name: dto.teamName,
+      identifier: teamId,
+      display_name: teamName,
+      metadata_encrypted: JSON.stringify({ encrypted, iv, tag }),
       is_active: true,
       connected_at: new Date().toISOString(),
     });
@@ -61,12 +79,14 @@ export class ChannelsService {
       instance_id: instance.id,
       user_id: userId,
       event_type: 'channel_connected',
-      metadata: { channel: 'slack', team_id: dto.teamId },
+      metadata: { channel: 'slack', team_id: teamId },
     });
 
-    await this.sendWelcomeMessage(dto.channelId);
+    if (dto.channelId) {
+      await this.sendWelcomeMessage(dto.channelId, dto.botToken);
+    }
 
-    this.logger.log(`Slack connected for user ${userId}, team ${dto.teamId}`);
+    this.logger.log(`Slack connected for user ${userId}, team ${teamId}`);
     return { success: true, message: 'Slack channel connected' };
   }
 
@@ -137,11 +157,11 @@ export class ChannelsService {
     return { success: true };
   }
 
-  private async sendWelcomeMessage(channelId: string) {
-    const botToken = this.config.get<string>('slack.botToken');
-    if (!botToken) return;
+  private async sendWelcomeMessage(channelId: string, botToken?: string) {
+    const token = botToken ?? this.config.get<string>('slack.botToken');
+    if (!token) return;
 
-    const web = new WebClient(botToken);
+    const web = new WebClient(token);
     await web.chat.postMessage({
       channel: channelId,
       text: '안녕하세요! 저 Nomi예요 👋 지금부터 열심히 도와드릴게요 😊',

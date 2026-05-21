@@ -1,12 +1,18 @@
-import { IsString } from 'class-validator';
+import { IsOptional, IsString } from 'class-validator';
 
 export class ConnectSlackDto {
   @IsString()
-  teamId!: string;
+  botToken!: string;
 
+  @IsOptional()
   @IsString()
-  teamName!: string;
+  teamId?: string;
 
+  @IsOptional()
   @IsString()
-  channelId!: string;
+  teamName?: string;
+
+  @IsOptional()
+  @IsString()
+  channelId?: string;
 }
