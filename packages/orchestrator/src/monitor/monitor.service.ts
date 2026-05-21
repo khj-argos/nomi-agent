@@ -42,25 +42,12 @@ export class MonitorService {
             continue;
           }
 
-          const newContainerId = await this.containerManager.startContainer(instance.user_id);
           await this.supabase.db
             .from('instances')
-            .update({
-              container_id: newContainerId,
-              status: 'running',
-              restart_count: (instance.restart_count ?? 0) + 1,
-              error_message: null,
-            })
+            .update({ container_id: null, status: 'stopped', error_message: null })
             .eq('id', instance.id);
 
-          await this.supabase.db.from('instance_events').insert({
-            instance_id: instance.id,
-            user_id: instance.user_id,
-            event_type: 'restarted',
-            metadata: { reason: 'crash_detected', restart_count: (instance.restart_count ?? 0) + 1 },
-          });
-
-          this.logger.log(`Container auto-restarted for user ${instance.user_id} (attempt ${(instance.restart_count ?? 0) + 1})`);
+          this.logger.log(`Container stopped for user ${instance.user_id}, will restart on next message`);
         }
       } catch (err) {
         this.logger.error(`Monitor check failed for user ${instance.user_id}: ${err}`);

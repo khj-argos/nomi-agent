@@ -22,7 +22,7 @@ class HealthController {
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true, load: [configuration] }),
+    ConfigModule.forRoot({ isGlobal: true, load: [configuration], envFilePath: ['.env', '../../.env'] }),
     ScheduleModule.forRoot(),
     SupabaseModule,
     ContainersModule,
