@@ -31,6 +31,7 @@ const TOTAL_STEPS = 5;
 export default function OnboardingPage() {
   const router = useRouter();
   const [step, setStep] = useState(1);
+  const [checking, setChecking] = useState(true);
   const [data, setData] = useState<OnboardingData>({
     anthropicApiKey: "",
     skipApiKey: true,
@@ -49,6 +50,18 @@ export default function OnboardingPage() {
 
   const nextStep = () => setStep((s) => Math.min(s + 1, TOTAL_STEPS));
   const prevStep = () => setStep((s) => Math.max(s - 1, 1));
+
+  useEffect(() => {
+    fetch("/api/onboarding/status")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.completed) router.replace("/dashboard");
+        else setChecking(false);
+      })
+      .catch(() => setChecking(false));
+  }, [router]);
+
+  if (checking) return null;
 
   return (
     <div className="w-full max-w-lg mx-auto">

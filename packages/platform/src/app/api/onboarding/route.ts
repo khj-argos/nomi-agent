@@ -8,6 +8,7 @@ interface OnboardingPayload {
   anthropicApiKey?: string;
   telegramBotToken?: string;
   telegramBotUsername?: string;
+  slackBotToken?: string;
 }
 
 export async function POST(request: Request) {
@@ -20,16 +21,33 @@ export async function POST(request: Request) {
 
     const body = await request.json() as OnboardingPayload;
 
-    const instance = await orchestrator.post<{ id: string }>("/instances", {
-      assistantName: body.assistantName,
-      agentConfig: body.agentConfig,
-      anthropicApiKey: body.anthropicApiKey,
-    });
+    let instance: { id: string };
+    try {
+      instance = await orchestrator.post<{ id: string }>("/instances", {
+        assistantName: body.assistantName,
+        agentConfig: body.agentConfig,
+        anthropicApiKey: body.anthropicApiKey,
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "";
+      if (msg.toLowerCase().includes("already exists") || msg.includes("409") || msg.includes("Conflict")) {
+        const existing = await orchestrator.get<{ id: string }>("/instances/me").catch(() => ({ id: "existing" }));
+        instance = existing;
+      } else {
+        throw err;
+      }
+    }
 
     if (body.telegramBotToken && body.telegramBotUsername) {
       await orchestrator.post("/channels/telegram", {
         botToken: body.telegramBotToken,
         botUsername: body.telegramBotUsername,
+      }).catch(() => {});
+    }
+
+    if (body.slackBotToken) {
+      await orchestrator.post("/channels/slack", {
+        botToken: body.slackBotToken,
       }).catch(() => {});
     }
 
