@@ -3,8 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { SocketModeClient } from '@slack/socket-mode';
 import { WebClient } from '@slack/web-api';
 import { SupabaseService } from '../common/supabase/supabase.service';
-import { ContainerManagerService } from '../containers/container-manager.service';
-import { InstancesService } from '../instances/instances.service';
+import { MessageDispatchService } from '../containers/message-dispatch.service';
 
 @Injectable()
 export class SlackSocketService implements OnModuleInit, OnModuleDestroy {
@@ -15,8 +14,7 @@ export class SlackSocketService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly config: ConfigService,
     private readonly supabase: SupabaseService,
-    private readonly containerManager: ContainerManagerService,
-    private readonly instancesService: InstancesService,
+    private readonly messageDispatch: MessageDispatchService,
   ) {}
 
   async onModuleInit() {
@@ -76,7 +74,9 @@ export class SlackSocketService implements OnModuleInit, OnModuleDestroy {
       .eq('type', 'slack')
       .eq('identifier', teamId)
       .eq('is_active', true)
-      .single();
+      .order('connected_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
     if (!channel) {
       this.logger.debug(`No channel registered for Slack team: ${teamId}`);
@@ -89,23 +89,26 @@ export class SlackSocketService implements OnModuleInit, OnModuleDestroy {
       metadata: { channel: 'slack', channel_id: channelId },
     });
 
-    const instance = channel.instances as unknown as Record<string, unknown>;
-    const containerId = instance?.container_id as string | null;
+    await this.supabase.db
+      .from('instances')
+      .update({ last_activity: new Date().toISOString() })
+      .eq('user_id', channel.user_id);
 
-    if (!containerId) {
-      await this.sendMessage(channelId, '잠깐만요, 준비 중이에요 🔄');
-      const newContainerId = await this.containerManager.startContainer(channel.user_id);
-      await this.instancesService.updateContainerId(channel.user_id, newContainerId);
-      this.logger.log(`Container started for Slack user ${channel.user_id}`);
-    }
-
-    await this.instancesService.updateLastActivity(channel.user_id);
     await this.supabase.db
       .from('channels')
       .update({ last_message_at: new Date().toISOString() })
       .eq('instance_id', channel.instance_id)
       .eq('type', 'slack');
 
-    this.logger.log(`Slack message routed for user ${channel.user_id} in channel ${channelId}`);
+    this.logger.log(`Dispatching Slack message for user ${channel.user_id} in channel ${channelId}`);
+
+    await this.messageDispatch.dispatch(
+      channel.user_id,
+      text,
+      `slack:${channelId}`,
+      async (reply: string) => {
+        await this.sendMessage(channelId, reply);
+      },
+    );
   }
 }
