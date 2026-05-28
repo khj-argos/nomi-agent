@@ -29,11 +29,15 @@ export class ChannelsService {
     const web = new WebClient(dto.botToken);
     let teamId = dto.teamId ?? '';
     let teamName = dto.teamName ?? '';
+    let channelId = dto.channelId ?? '';
 
     try {
       const authResult = await web.auth.test();
       teamId = (authResult.team_id as string) ?? teamId;
       teamName = (authResult.team as string) ?? teamName;
+      if (!channelId) {
+        channelId = (authResult.bot_id as string) ?? '';
+      }
     } catch (err) {
       this.logger.warn(`Slack auth.test failed: ${err}`);
       if (!teamId) throw new BadRequestException('Invalid Slack Bot Token');
@@ -53,9 +57,9 @@ export class ChannelsService {
       await this.supabase.db
         .from('channels')
         .update({
-          identifier: teamId,
+          identifier: channelId || teamId,
           display_name: teamName,
-          metadata_encrypted: JSON.stringify({ encrypted, iv, tag }),
+          metadata_encrypted: JSON.stringify({ encrypted, iv, tag, teamId }),
           is_active: true,
           connected_at: new Date().toISOString(),
         })
@@ -68,9 +72,9 @@ export class ChannelsService {
       user_id: userId,
       instance_id: instance.id,
       type: 'slack',
-      identifier: teamId,
+      identifier: channelId || teamId,
       display_name: teamName,
-      metadata_encrypted: JSON.stringify({ encrypted, iv, tag }),
+      metadata_encrypted: JSON.stringify({ encrypted, iv, tag, teamId }),
       is_active: true,
       connected_at: new Date().toISOString(),
     });

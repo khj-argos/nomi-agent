@@ -1,8 +1,10 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, forwardRef, Inject } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { SupabaseService } from '../common/supabase/supabase.service';
 import { ContainerManagerService } from '../containers/container-manager.service';
+import { MessageDispatchService } from '../containers/message-dispatch.service';
 import { InstancesService } from '../instances/instances.service';
+import { SlackSocketService } from '../channels/slack-socket.service';
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()
@@ -12,7 +14,10 @@ export class SchedulerService {
   constructor(
     private readonly supabase: SupabaseService,
     private readonly containerManager: ContainerManagerService,
+    private readonly messageDispatch: MessageDispatchService,
     private readonly instancesService: InstancesService,
+    @Inject(forwardRef(() => SlackSocketService))
+    private readonly slackSocket: SlackSocketService,
     private readonly config: ConfigService,
   ) {}
 
@@ -125,23 +130,56 @@ export class SchedulerService {
   }
 
   private async runSchedule(schedule: Record<string, unknown>) {
-    const instance = schedule.instances as Record<string, unknown>;
-    const containerId = instance?.container_id as string | null;
+    const userId = schedule.user_id as string;
+    const prompt = schedule.prompt as string | null;
 
-    if (!containerId) {
-      const newContainerId = await this.containerManager.startContainer(schedule.user_id as string);
-      await this.instancesService.updateContainerId(schedule.user_id as string, newContainerId);
+    if (!prompt?.trim()) {
+      this.logger.warn(`Schedule ${schedule.id} has no prompt, skipping`);
+      return;
+    }
+
+    const { data: lastMsg } = await this.supabase.db
+      .from('usage_logs')
+      .select('metadata')
+      .eq('user_id', userId)
+      .eq('action', 'message_received')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const lastChannelId = (lastMsg?.metadata as Record<string, string> | null)?.channel_id ?? null;
+
+    let status = 'success';
+    let error: string | null = null;
+
+    try {
+      await this.messageDispatch.dispatch(
+        userId,
+        prompt,
+        `schedule:${schedule.id as string}`,
+        async (reply: string) => {
+          if (lastChannelId) {
+            await this.slackSocket.sendMessage(lastChannelId, reply);
+          } else {
+            this.logger.warn(`No recent Slack channel for user ${userId}, schedule reply dropped`);
+          }
+        },
+      );
+    } catch (err) {
+      status = 'error';
+      error = err instanceof Error ? err.message : String(err);
+      this.logger.error(`Schedule ${schedule.id as string} dispatch failed: ${error}`);
     }
 
     await this.supabase.db.from('schedule_run_logs').insert({
       schedule_id: schedule.id,
-      user_id: schedule.user_id,
-      status: 'success',
+      user_id: userId,
+      status,
       ran_at: new Date().toISOString(),
     });
 
     await this.supabase.db.from('usage_logs').insert({
-      user_id: schedule.user_id,
+      user_id: userId,
       action: 'proactive_sent',
       metadata: { schedule_id: schedule.id, action_type: schedule.action_type },
     });

@@ -10,6 +10,7 @@ export class SlackSocketService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(SlackSocketService.name);
   private client: SocketModeClient | null = null;
   private webClient: WebClient | null = null;
+  private readonly processedEvents = new Set<string>();
 
   constructor(
     private readonly config: ConfigService,
@@ -61,6 +62,13 @@ export class SlackSocketService implements OnModuleInit, OnModuleDestroy {
 
   private async handleMessage(event: Record<string, unknown>) {
     if (event.bot_id || event.subtype) return;
+
+    const eventId = `${event.client_msg_id ?? event.ts ?? ''}`;
+    if (eventId && this.processedEvents.has(eventId)) return;
+    if (eventId) {
+      this.processedEvents.add(eventId);
+      setTimeout(() => this.processedEvents.delete(eventId), 60_000);
+    }
 
     const channelId = event.channel as string;
     const teamId = event.team as string;

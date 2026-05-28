@@ -110,8 +110,16 @@ export class MessageDispatchService {
   ): void {
     if (this.watchers.has(userId)) return;
 
-    this.watchContainerStdout(userId, containerId, onReply);
-    this.watchIpcMessages(userId, ipcMessagesDir, onReply);
+    let replied = false;
+    const onReplyOnce = async (text: string) => {
+      if (replied) return;
+      replied = true;
+      this.stopWatcher(userId);
+      await onReply(text);
+    };
+
+    this.watchContainerStdout(userId, containerId, onReplyOnce);
+    this.watchIpcMessages(userId, ipcMessagesDir, onReplyOnce);
   }
 
   private watchContainerStdout(
