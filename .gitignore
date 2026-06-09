@@ -46,3 +46,7 @@ docker-compose.override.yml
 
 # Serena (AI tooling)
 .serena/
+
+# AI tooling state (opencode, claude-code, etc.)
+.claude/
+.opencode/

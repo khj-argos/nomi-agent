@@ -57,7 +57,7 @@ export class ChannelsService {
       await this.supabase.db
         .from('channels')
         .update({
-          identifier: channelId || teamId,
+          identifier: teamId,
           display_name: teamName,
           metadata_encrypted: JSON.stringify({ encrypted, iv, tag, teamId }),
           is_active: true,
@@ -72,7 +72,7 @@ export class ChannelsService {
       user_id: userId,
       instance_id: instance.id,
       type: 'slack',
-      identifier: channelId || teamId,
+      identifier: teamId,
       display_name: teamName,
       metadata_encrypted: JSON.stringify({ encrypted, iv, tag, teamId }),
       is_active: true,

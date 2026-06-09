@@ -10,9 +10,12 @@ services:
     image: nanoclaw-platform:latest
     ports:
       - "3000:3000"
-    env_file: .env
+    env_file:
+      - .env
+      - packages/platform/.env.local
     environment:
       - NODE_ENV=production
+      - PORT=3000
       - ORCHESTRATOR_URL=http://orchestrator:4001
     depends_on:
       orchestrator:
@@ -31,7 +34,9 @@ services:
       context: .
       dockerfile: packages/orchestrator/Dockerfile
     image: nanoclaw-orchestrator:latest
-    env_file: .env
+    env_file:
+      - .env
+      - packages/orchestrator/.env
     environment:
       - NODE_ENV=production
       - PORT=4001

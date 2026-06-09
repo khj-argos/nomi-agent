@@ -1,6 +1,8 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 
+RUN apk add --no-cache python3 make g++
+
 COPY package*.json ./
 COPY packages/orchestrator/package.json ./packages/orchestrator/
 RUN npm ci --workspace=packages/orchestrator
@@ -11,6 +13,8 @@ RUN npm run build --workspace=packages/orchestrator
 
 FROM node:20-alpine
 WORKDIR /app
+
+RUN apk add --no-cache python3 make g++
 
 COPY package*.json ./
 COPY packages/orchestrator/package.json ./packages/orchestrator/
