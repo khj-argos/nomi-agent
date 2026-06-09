@@ -10,7 +10,7 @@ Nomi Agent is a multi-tenant SaaS platform that manages per-user [nanoclaw](http
 
 - **Instant Deployment** — Spin up a personal AI agent with a few clicks
 - **Dual LLM Backend** — Free hosted Gemma 4 (default) with one-click switch to Claude when users register an Anthropic API key (BYOK)
-- **Messaging Channel Integration** — Connect agents to Telegram (Slack & Discord coming soon)
+- **Messaging Channel Integration** — Connect agents to Telegram and Slack (Discord coming soon)
 - **Web Dashboard** — Monitor instance status, manage channels, switch LLM provider, and watch daily token usage
 - **Agent Configuration** — Edit your agent's `CLAUDE.md` prompt via Monaco editor or choose from templates
 - **Secure by Default** — User API keys encrypted at rest with AES-256-GCM; per-user container isolation; agent containers never see raw provider keys
@@ -42,7 +42,8 @@ Nomi Agent is a multi-tenant SaaS platform that manages per-user [nanoclaw](http
 ┌───────────────────────────────────────────┐
 │   nanoclaw Containers (per-user)          │
 │   /data/nanoclaw-instances/{userId}/      │
-│     ├── store/messages.db   (SQLite)      │
+│     ├── inbound.db   (SQLite — prompts)   │
+│     ├── outbound.db  (SQLite — replies)   │
 │     └── groups/main/CLAUDE.md            │
 └───────────────────────────────────────────┘
 
@@ -50,6 +51,8 @@ External Services
   Supabase     — Auth + PostgreSQL
   LemonSqueezy — Subscriptions & Billing
 ```
+
+For detailed architecture, see [docs/architecture.md](docs/architecture.md).
 
 ### Monorepo Structure
 
@@ -68,8 +71,8 @@ External Services
 │   ├── orchestrator/      # NestJS instance management service
 │   │   └── src/
 │   │       ├── instances/         # Instance CRUD
-│   │       ├── containers/        # Docker lifecycle management
-│   │       ├── channels/          # Telegram bot registration
+│   │       ├── containers/        # Docker lifecycle + SQLite session I/O (SessionDbService)
+│   │       ├── channels/          # Telegram & Slack bot registration
 │   │       ├── billing/           # Subscription sync
 │   │       ├── monitor/           # Health checks
 │   │       └── scheduler/         # Periodic maintenance tasks
@@ -184,7 +187,8 @@ Users are guided through a 4-step setup:
 - [x] LemonSqueezy billing
 - [x] Onboarding flow
 - [x] Dashboard UI
-- [ ] Slack & Discord channel support
+- [x] Slack channel support
+- [ ] Discord channel support
 - [ ] Multi-instance support per user
 - [ ] Usage analytics dashboard
 - [ ] Agent template marketplace
